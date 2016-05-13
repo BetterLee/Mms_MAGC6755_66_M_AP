@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright 2011 Google Inc.
+All Rights Reserved. -->
+<resources>
+    <dimen name="emoji_size">32dip</dimen>
+    <dimen name="input_subject_height">38dip</dimen>
+    <dimen name="ramos_textSizeSecondary">13sp</dimen>
+    <dimen name="ramos_textSizePrimary">15sp</dimen>
+    <dimen name="ramos_dialog_height_title">48dip</dimen>
+    <dimen name="actionbar_contentInsetStart">0dp</dimen>
+    <dimen name="settings_side_margin">0dip</dimen>
+    <dimen name="dashboard_padding_top">0dp</dimen>
+    <dimen name="dashboard_padding_bottom">0dp</dimen>
+    <dimen name="dashboard_category_elevation">4dp</dimen>
+    <dimen name="ramos_dialog_width">302dip</dimen>
+    <dimen name="ramos_dialog_height">272dip</dimen>
+    <dimen name="ramos_dialog_edit_height">258dip</dimen>
+    <dimen name="ramos_input_text_height">38dip</dimen>
+    <dimen name="ramos_menu_text">12sp</dimen>
+    <dimen name="ramos_actionbar_text">16sp</dimen>
+    <dimen name="dashboard_tile_minimum_height">60dp</dimen>
+    <dimen name="ramos_divider_line">16dp</dimen>
+    <dimen name="dashboard_tile_image_size">24dp</dimen>
+</resources>

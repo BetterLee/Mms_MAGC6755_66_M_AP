@@ -286,6 +286,27 @@ import com.mediatek.internal.telephony.DefaultSmsSimSettings;
 import com.mediatek.telephony.TelephonyManagerEx;
 import com.mediatek.internal.telephony.MmsConfigInfo;
 
+//[ramos] added by liting 20151124
+import android.view.ActionMode;
+import android.view.ViewGroup;
+import com.android.mms.ramos.RamosAttachmentFragment;
+import com.android.mms.ramos.RamosBottomPanel;
+import com.android.mms.ramos.RamosFaceUtil;
+import com.android.mms.ramos.RamosPopupMenuWindow;
+import com.android.mms.ramos.RamosRecipientListActivity;
+import com.android.mms.ramos.RamosTimerActivity;
+import android.view.WindowManager.LayoutParams;
+import android.text.SpannableStringBuilder;
+import android.telecom.TelecomManager;
+import android.telecom.PhoneAccountHandle;
+import android.text.format.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Map.Entry;
+import java.util.Collections;
+import com.mediatek.mms.ext.IOpMultiDeleteActivityExt;
+import com.mediatek.mms.ext.IOpMessageListAdapterExt;
+import com.mediatek.mms.callback.IMultiDeleteActivityCallback;
+//[ramos] end liting
 /**
  * This is the main UI for:
  * 1. Composing a new message;
@@ -299,11 +320,23 @@ import com.mediatek.internal.telephony.MmsConfigInfo;
  * address String The addresses of the recipients in current conversation.
  * exit_on_sent boolean Exit this activity after the message is sent.
  */
+//[ramos]modified by liting 20150921
+/*
 public class ComposeMessageActivity extends Activity
         implements View.OnClickListener, TextView.OnEditorActionListener,
         MessageStatusListener, Contact.UpdateListener, OnShutDownListener,
  OnSubInforChangedListener,
         ITextSizeAdjustHost, SubClickAndDismissListener {
+*/
+public class ComposeMessageActivity extends Activity
+        implements View.OnClickListener, TextView.OnEditorActionListener,
+        MessageStatusListener, Contact.UpdateListener, OnShutDownListener,
+ OnSubInforChangedListener,
+        ITextSizeAdjustHost, SubClickAndDismissListener ,
+		RamosBottomPanel.OnHandleMessage,
+		RamosPopupMenuWindow.OnPopupItemClickListener ,
+		IMultiDeleteActivityCallback{
+//[ramos]end liting
     public static final int REQUEST_CODE_ATTACH_IMAGE     = 100;
     public static final int REQUEST_CODE_TAKE_PICTURE     = 101;
     public static final int REQUEST_CODE_ATTACH_VIDEO     = 102;
@@ -322,6 +355,11 @@ public class ComposeMessageActivity extends Activity
     public static final int REQUEST_CODE_VIEW_CONTACT     = 111;
     private Contact mInViewContact;
     /// @}
+	public static final int REQUEST_CODE_PICK_SINGLE       = 112;	///[ramos] for pick contact shuyong 20150824
+    public static final int REQUEST_CODE_NEW_CONTACT       = 113;	///[ramos] for new contact menu added by shuyong 20150824
+	//[ramos] added by liting 20151110 for BUG0008316
+    public static final int REQUEST_CODE_TIMER      = 114;
+	//[ramos] end liting 
 
     private static final String TAG = "Mms/compose";
     private static final String TAG_OMH = "OMH_MMS";
@@ -341,6 +379,11 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_CALL_RECIPIENT        = 5;
     private static final int MENU_CONVERSATION_LIST     = 6;
     private static final int MENU_DEBUG_DUMP            = 7;
+	//[ramos]added by liting 20150910
+    private static final int MENU_CALL_RECIPIENTSIM1		= 97;
+    private static final int MENU_CALL_RECIPIENTSIM2		= 98;
+    private static final int MENU_MORE					= 99;
+	//[ramos]end liting
 
     // Context menu ID
     private static final int MENU_VIEW_CONTACT          = 12;
@@ -365,7 +408,10 @@ public class ComposeMessageActivity extends Activity
     private static final int MENU_PREFERENCES           = 31;
     /// M: google jb.mr1 patch
     private static final int MENU_GROUP_PARTICIPANTS    = 32;
-
+    ///[ramos] for new contact menu added by shuyong 20150824
+    private static final int MENU_ADD_ADDRESS_TO_NEW_CONTACT       = 33;
+    private static final int MENU_ENTRY_EDIT_MODE       = 34;
+    //[ramos] end 
     private static final int MENU_SELECT_MESSAGE = 101;
 
     private static final int MENU_COPY = 207;
@@ -375,7 +421,7 @@ public class ComposeMessageActivity extends Activity
 
     private static final int DELETE_MESSAGE_TOKEN  = 9700;
 
-    private static final int CHARS_REMAINING_BEFORE_COUNTER_SHOWN = 10;
+    private static final int CHARS_REMAINING_BEFORE_COUNTER_SHOWN = 30;		///[ramos] modified by shuyong 20150906 10 -> 30
 
     private static final long NO_DATE_FOR_DIALOG = -1L;
 
@@ -552,6 +598,37 @@ public class ComposeMessageActivity extends Activity
 
     private StatusBarSelectorReceiver mStatusBarSelectorReceiver;
 
+    //[ramos]added by liting 20150910
+    private View mSubjectDivider;			///[ramos] shuyong 
+    private ImageView mRecipientsBack; 
+    private TextView mRecipientsText;
+    private TextView mRecipientsSubText;
+    private boolean mIsRamosPanelShow;
+    List<PhoneAccountHandle> phoneAccountsList;
+    private Intent mNewContactIntent;	///[ramos] for new contact menu added by shuyong 20150824
+    //[ramos] begin by liting 20151216 for BUG0011442
+    private TextView mTopEdit;
+    //[ramos] end liting
+    private RamosPopupMenuWindow mPopupWindow;
+    private View contents;
+    private AlertDialog mDetailDialog;
+    private AlertDialog mDeleteDialog;
+	//[ramos] added by liting 20151110 for BUG0008316
+    private TextView mTimerView;
+    private Intent mTimerIntent;
+    private Long mTimeInMillis;
+	//[ramos]end liting
+    private AlertDialog mCallSubDialog;
+    private LinearLayout mMenuPanel;
+    private TextView mContactAdd;
+    private TextView mContactView;
+    private TextView mContactCall;
+    private TextView mBlackListAdd;
+    private TextView mBlackListCancel;
+    private boolean mIsSelectedAll;
+    private ImageButton mShareButton;
+    private IOpMultiDeleteActivityExt mOpMultiDeleteActivityExt;
+	//[ramos] end shuyong 20151124 for ComposeMessageActivity ActionMode
     private void dismissProgressDialog() {
         Log.d(TAG, "Composer reduce mAsyncTaskNum = " + (--mAsyncTaskNum));
         if (mAsyncTaskNum == 0) {
@@ -729,7 +806,10 @@ public class ComposeMessageActivity extends Activity
                     /// M: Code analyze 051, Hide input keyboard.@{
                     hideInputMethod();
                     /// @}
-                    showAddAttachmentDialog(false);
+					///[ramos] modified by shuyong
+                    //showAddAttachmentDialog(true);
+                	showAddAttachmentPopupWindow(true);
+                	///[ramos] end
                     break;
 
                 case AttachmentEditor.MSG_REMOVE_ATTACHMENT:
@@ -821,7 +901,88 @@ public class ComposeMessageActivity extends Activity
     // Whether or not we are currently enabled for SMS. This field is updated in onStart to make
     // sure we notice if the user has changed the default SMS app.
     private boolean mIsSmsEnabled;
+    public MessageItem mMessageItemRamos;
+    //[ramos] added by liting 20151204 for BUG0010856
+    public MessageItem getRamosMessageItem() {
 
+        Iterator iter = mMsgListAdapter.getItemList().entrySet().iterator();
+        ArrayList<Long> selectSms = new ArrayList<Long>();
+        while (iter.hasNext()) {
+            Map.Entry<Long, Boolean> entry = (Entry<Long, Boolean>) iter.next();
+            if (entry.getValue()) {
+                if (entry.getKey() > 0) {
+                    MmsLog.i(TAG, "sms");
+                    selectSms.add(entry.getKey());
+                } else {
+                    MmsLog.i(TAG, "have  mms");
+                    selectSms.add(entry.getKey());
+                }
+            }
+        }
+        MessageItem cacheitem = null;
+        long mMmsId = selectSms.get(0);
+        if(mMmsId > 0) {
+            cacheitem = mMsgListAdapter.getCachedMessageItem("sms", mMmsId, null);
+        } else if (mMmsId < 0){
+            cacheitem = mMsgListAdapter.getCachedMessageItem("mms", -mMmsId, null);
+        }
+        
+        if (cacheitem == null) {
+            MmsLog.i(TAG, "cacheitem is null ");
+            iter = mMsgListAdapter.getItemList().entrySet().iterator();
+            while (iter.hasNext()) {
+                Map.Entry<Long, Boolean> entry = (Entry<Long, Boolean>) iter.next();
+                MmsLog.i(TAG, "mMmsId " + mMmsId);
+                MmsLog.i(TAG, "key " + entry.getKey());
+                if (entry.getKey() == mMmsId) {
+                    Cursor cursor = mMsgListAdapter.getCursor();
+                    if (cursor != null) {
+                        MmsLog.i(TAG, "cursor is not null ");
+                    }
+                    if (cursor != null && cursor.moveToFirst()) {
+                        do {
+                            MmsLog.i(TAG, "message_type " + cursor.getString(mMsgListAdapter.COLUMN_MSG_TYPE));
+                            MmsLog.i(TAG, "mMmsId " + cursor.getLong(mMsgListAdapter.COLUMN_ID));
+                            MmsLog.i(TAG, "subject " + cursor.getString(mMsgListAdapter.COLUMN_MMS_SUBJECT));
+                            MmsLog.i(TAG, "mms type " + cursor.getInt(mMsgListAdapter.COLUMN_MMS_MESSAGE_TYPE));
+                            //MmsLog.i(TAG,"sim_id "+ cursor.getInt(mMsgListAdapter.COLUMN_MMS_SIMID));
+                            if (cursor.getInt(mMsgListAdapter.COLUMN_ID) == -mMmsId) {
+                                String highlightString = getIntent().getStringExtra(
+                                        "highlight");
+                                Pattern highlight = highlightString == null ? null
+                                        : Pattern.compile(
+                                                "\\b" + Pattern.quote(highlightString),
+                                                Pattern.CASE_INSENSITIVE);
+                                try {
+                                    cacheitem = new MessageItem(
+                                       this,
+                                       0,
+                                       cursor.getInt(mMsgListAdapter.COLUMN_MMS_MESSAGE_TYPE),
+                                       cursor.getInt(mMsgListAdapter.COLUMN_MMS_SUBID),
+                                       0,
+                                       0,
+                                       0,
+                                       cursor.getLong(mMsgListAdapter.COLUMN_ID),
+                                       cursor.getString(mMsgListAdapter.COLUMN_MSG_TYPE),
+                                       cursor.getString(mMsgListAdapter.COLUMN_MMS_SUBJECT),
+                                       null, null, null, highlight, false, 0, 0,
+                                       cursor.getString(mMsgListAdapter.COLUMN_MMS_CC),
+                                       cursor.getString(mMsgListAdapter.COLUMN_MMS_CC_ENCODING),
+                                       cursor.getLong(mMsgListAdapter.COLUMN_MMS_DATE_SENT));
+                                } catch (MmsException e) {
+                                    MmsLog.e(TAG, "MessageItem:", e);
+                                }
+                                break;
+                            }
+                        } while (cursor.moveToNext());
+                    }
+                    break;
+                }
+            }
+        }
+        return cacheitem;
+    }
+	//[ramos] end liting
     private final Handler mMessageListItemHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -882,6 +1043,16 @@ public class ComposeMessageActivity extends Activity
                     /// M:,Support messages multi-delete opeartor. @{
                     case MessageListItem.ITEM_CLICK: { // can be deleted!!!
                         mMsgListAdapter.changeSelectedState(msg.arg1);
+                        //[ramos] added by shuyong 20151124 for ComposeMessageActivity ActionMode
+                        mIsSelectedAll = false;
+                        if (mMsgListAdapter.getSelectedNumber() > 0) {
+                        	if (mMsgListAdapter.getSelectedNumber() == mMsgListAdapter.getCount()) {
+                        		mIsSelectedAll = true;
+                        	}
+                        }
+                        if(null != mActionMode)
+                        	mActionModeListener.updateUi();
+                        //[ramos] end shuyong 20151124 for ComposeMessageActivity ActionMode
                         return;
                     }
                     /// @}
@@ -913,11 +1084,38 @@ public class ComposeMessageActivity extends Activity
                 ComposeMessageActivity.this, msgItem);
         /// @}
         Log.d(TAG, "showMessageDetails. messageDetails:" + messageDetails);
+		//[ramos]added by liting 20151015
+/*
         new AlertDialog.Builder(ComposeMessageActivity.this)
                 .setTitle(R.string.message_details_title)
                 .setMessage(messageDetails)
                 .setCancelable(true)
                 .show();
+*/
+        AlertDialog.Builder builder = new AlertDialog.Builder(ComposeMessageActivity.this);
+        mDetailDialog = builder.create();
+		mDetailDialog.show();
+		LayoutParams layoutParams;
+		layoutParams = mDetailDialog.getWindow().getAttributes();
+		layoutParams.width = getResources().getDimensionPixelSize(R.dimen.ramos_dialog_width);//(int) (d.getWidth());
+		//layoutParams.height = getResources().getDimensionPixelSize(R.dimen.ramos_dialog_height);//(int) (d.getWidth());
+		mDetailDialog.getWindow().setAttributes(layoutParams); 
+		mDetailDialog.setContentView(R.layout.ramos_dialog_capacity);
+		mDetailDialog.setCancelable(true);
+		mDetailDialog.setCanceledOnTouchOutside(true);
+		TextView title = (TextView) mDetailDialog.findViewById(R.id.title);
+		title.setSingleLine(true);
+		title.setText(R.string.message_details_title);
+		TextView message = (TextView) mDetailDialog.findViewById(R.id.message);
+		message.setText(messageDetails);
+		Button button = (Button) mDetailDialog.findViewById(R.id.btn_sure);
+		button.setOnClickListener(new View.OnClickListener() {
+				public void onClick(View v) {
+					mDetailDialog.dismiss();
+					mDetailDialog = null;
+				}
+			});
+		//[ramos] end liting
         return true;
     }
 
@@ -1130,7 +1328,14 @@ public class ComposeMessageActivity extends Activity
         if (null != intent && null != intent.getData()
                 && intent.getData().getScheme().equals("mailto")) {
             try {
-                super.startActivityForResult(intent, requestCode);
+				//[ramos] added by liting 20151114 for BUG0008386
+                //super.startActivityForResult(intent, requestCode);
+				if (ComposeMessageActivity.this.getPackageManager().resolveActivity(intent, 0) == null) {
+						Toast.makeText(ComposeMessageActivity.this, R.string.need_login_email, Toast.LENGTH_LONG).show(); 
+				} else {
+					super.startActivityForResult(intent, requestCode);
+				}
+				//[ramos] end liting
             } catch (ActivityNotFoundException e) {
                 MmsLog.e(TAG, "[ActivityNotFoundException] Failed to startActivityForResult: " + intent);
                 Intent mchooserIntent = Intent.createChooser(intent, null);
@@ -2513,8 +2718,14 @@ public class ComposeMessageActivity extends Activity
             type = MmsApp.getApplication().getDrmManagerClient()
                     .getOriginalMimeType(part.getDataUri());
         }
+        //[ramos] begin liting 20160123            
+/*
         if (!MmsContentType.isImageType(type) && !MmsContentType.isVideoType(type) &&
                 !MmsContentType.isAudioType(type)) {
+*/
+        if (!MmsContentType.isImageType(type) && !MmsContentType.isVideoType(type) &&
+                !MmsContentType.isAudioType(type) && !"application/ogg".equalsIgnoreCase(type)) {
+        //[ramos] end liting
             return true;    // we only save pictures, videos, and sounds. Skip the text parts,
                             // the app (smil) parts, and other type that we can't handle.
                             // Return true to pretend that we successfully saved the part so
@@ -2567,7 +2778,10 @@ public class ComposeMessageActivity extends Activity
                     extension += DrmUtils.getConvertExtension(type);
                 }
                 // Remove leading periods. The gallery ignores files starting with a period.
-                fileName = fileName.replaceAll("^.", "");
+                //[ramos] begin by liting 20160123 for BUG0011876
+                //fileName = fileName.replaceAll("^.", "");
+                if (fileName.indexOf('.') == 0) fileName = fileName.replaceAll("^.", ""); 
+                //[ramos] end liting
 
                 File file = getUniqueDestination(dir + fileName, extension);
 
@@ -2719,6 +2933,9 @@ public class ComposeMessageActivity extends Activity
                         subTitle = numberAfterFormat;
                     }
                 }
+                //[ramos] begin liting 20160325
+                subTitle = MessageUtils.getNumberLocation(this, number);
+                //[ramos] end liting
                 /// M: fix bug ALPS00488976, group mms @{
                 if (mMsgListAdapter.isGroupConversation()) {
                     mMsgListAdapter.setIsGroupConversation(false);
@@ -2745,12 +2962,40 @@ public class ComposeMessageActivity extends Activity
         }
 
         if (actionBar.getCustomView() == null) {
-            actionBar.setCustomView(R.layout.actionbar_message_title);
+            //[ramos] begin by liting 20151216 for BUG0011442
+            //actionBar.setCustomView(R.layout.actionbar_message_title);
+            actionBar.setCustomView(R.layout.ramos_actionbar_message_title);
+            //[ramos] end liting
         }
         mActionBarCustomView = actionBar.getCustomView();
         mTopTitle = (TextView) mActionBarCustomView.findViewById(R.id.tv_top_title);
         mTopSubtitle = (TextView) mActionBarCustomView.findViewById(R.id.tv_top_subtitle);
         String number = null;
+        //[ramos] begin by liting 20151216 for BUG0011442
+        mTopEdit = (TextView) mActionBarCustomView.findViewById(R.id.tv_edit);
+		mTopEdit.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+					mActionMode = startActionMode(mActionModeListener);
+					if (mMsgListAdapter != null) {
+						mMsgListAdapter.notifyDataSetChanged();
+					}
+                }
+            });
+    	//[ramos] begin liting 20160125
+    	actionBar.setDisplayHomeAsUpEnabled(false);
+    	TextView returntextview=(TextView)mActionBarCustomView.findViewById(R.id.preference_return_textview);
+    	returntextview.setText(R.string.conversation_list_title);
+    	returntextview.setVisibility(View.VISIBLE);
+    	LinearLayout linear=(LinearLayout)mActionBarCustomView.findViewById(R.id.preference_actionbar_return);
+    	linear.setVisibility(View.VISIBLE);
+		linear.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    finish();
+                }
+            });
+        //[ramos] end liting
+        updateMenuPanel();
+        //[ramos] end liting
         if(!list.isEmpty())
         {
             number = list.get(0).getNumber();
@@ -2777,10 +3022,35 @@ public class ComposeMessageActivity extends Activity
                 actionBar.setIcon(R.drawable.ic_launcher_smsmms);
             }
             mTopSubtitle.setVisibility(View.GONE);
+			//[ramos]added by liting 20150910
+			if(mRecipientsSubText != null)
+			mRecipientsSubText.setVisibility(View.INVISIBLE);
+			//[ramos]end liting
         } else {
             mTopSubtitle.setText(subTitle);
             mTopSubtitle.setVisibility(View.VISIBLE);
+			//[ramos]added by liting 20150910
+			if(mRecipientsSubText != null){
+				if (cnt > 1) {
+					mRecipientsSubText.setVisibility(View.VISIBLE);
+					mRecipientsSubText.setText(subTitle);
+				} else {
+					mRecipientsSubText.setVisibility(View.INVISIBLE);
+				}
+			}
+			//[ramos]end liting
         }
+		//[ramos]added by liting 20150910
+		if(mRecipientsText != null) {
+			if(cnt == 0) {
+				title = getString(R.string.to_hint_ipmsg);
+				mRecipientsText.setTextColor(0Xffc1c1c1);
+			} else {
+				mRecipientsText.setTextColor(0Xff505050);
+			}
+			mRecipientsText.setText(title);
+		}
+		//[ramos]end liting
         actionBar.setDisplayShowCustomEnabled(true);
         actionBar.setDisplayShowTitleEnabled(false);
     }
@@ -2803,11 +3073,17 @@ public class ComposeMessageActivity extends Activity
                         MmsLog.d(TAG, "asyncUpdateThreadMuteIcon: meedNotify is " + needNotify);
                         ActionBar actionBar = getActionBar();
                         if (actionBar.getCustomView() == null) {
-                            actionBar.setCustomView(R.layout.actionbar_message_title);
+						    //[ramos] begin by liting 20151216 for BUG0011442
+                            //actionBar.setCustomView(R.layout.actionbar_message_title);
+                            actionBar.setCustomView(R.layout.ramos_actionbar_message_title);
+							//[ramos] end liting
                         }
                         mActionBarCustomView = actionBar.getCustomView();
                         mMuteLogo = (ImageView) mActionBarCustomView.findViewById(R.id.iv_silent);
-                        mMuteLogo.setVisibility(needNotify ? View.INVISIBLE : View.VISIBLE);
+						//[ramos]modified by liting 20150922
+						//mMuteLogo.setVisibility(needNotify ? View.INVISIBLE : View.VISIBLE);
+						mMuteLogo.setVisibility(View.GONE);
+                        //[ramos]end liting
                     }
                 });
             }
@@ -2829,7 +3105,9 @@ public class ComposeMessageActivity extends Activity
             recipients.remove(RECIPIENTS_LIMIT_FOR_SMS);
         }
         /// @}
-
+        //[ramos]added by liting 20150923
+		getActionBar().hide();
+		//[ramos]end liting
         ViewStub stub = (ViewStub)findViewById(R.id.recipients_editor_stub);
         if (stub != null) {
             View stubView = stub.inflate();
@@ -2852,6 +3130,13 @@ public class ComposeMessageActivity extends Activity
         mRecipientsEditor.setEnabled(mIsSmsEnabled);
         mRecipientsEditor.setFocusableInTouchMode(mIsSmsEnabled);
         mRecipientsEditor.setIsTouchable(mIsSmsEnabled);
+        //[ramos]added by liting 20150910
+    	mRecipientsBack = (ImageView)findViewById(R.id.recipients_back);
+    	mRecipientsBack.setVisibility(View.VISIBLE);
+    	mRecipientsBack.setOnClickListener(this);
+    	mRecipientsText = (TextView)findViewById(R.id.recipients_text);
+    	mRecipientsSubText = (TextView)findViewById(R.id.recipients_subtext);
+        //[ramos]end liting
 
         // M: indicate contain email address or not in RecipientsEditor candidates. @{
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ComposeMessageActivity.this);
@@ -2870,7 +3155,9 @@ public class ComposeMessageActivity extends Activity
             mRecipientsEditor.populate(new ContactList());
             mRecipientsEditor.populate(recipients);
         }
-        mRecipientsEditor.setOnCreateContextMenuListener(mRecipientsMenuCreateListener);
+		//[ramos] deleted by liting 20151012
+        //mRecipientsEditor.setOnCreateContextMenuListener(mRecipientsMenuCreateListener);
+		//[ramos] end liting
         // TODO : Remove the max length limitation due to the multiple phone picker is added and the
         // user is able to select a large number of recipients from the Contacts. The coming
         // potential issue is that it is hard for user to edit a recipient from hundred of
@@ -2909,12 +3196,23 @@ public class ComposeMessageActivity extends Activity
                     } else {
                         updateTextEditorHeightInFullScreen();
                     }
+				//[ramos]added by liting 20150910
+					mRecipientsEditor.setVisibility(View.VISIBLE);
+					mRecipientsText.setVisibility(View.GONE);
+                    mInputMethodManager.showSoftInput(getCurrentFocus(), InputMethodManager.SHOW_IMPLICIT);
+                } else {
+                	mRecipientsEditor.setVisibility(View.GONE);
+                	mRecipientsText.setVisibility(View.VISIBLE);
                 }
+                //[ramos]end liting
                 // add for ipmessage
                 mIpCompose.onIpRecipientsEditorFocusChange(hasFocus, mRecipientsEditor.getNumbers());
                 mOpComposeExt.onRecipientsEditorFocusChange(hasFocus);
             }
         });
+		//[ramos]added by liting 20150910
+        mRecipientsText.setOnClickListener(this);
+		//[ramos]end liting
 
         mRecipientsEditor.setOnTouchListener(new OnTouchListener() {
             @Override
@@ -3052,7 +3350,10 @@ public class ComposeMessageActivity extends Activity
         }
         MmsLog.d(TAG, "onCreate(): mCurrentMaxHeight = " + mCurrentMaxHeight);
         /// @}
-        setContentView(R.layout.compose_message_activity);
+        //[ramos] modified by liting 20151028 for RAMOS_STYLE
+        //setContentView(R.layout.compose_message_activity);
+        setContentView(R.layout.ramos_compose_message_activity);
+		//[ramos] end liting
         setProgressBarVisibility(false);
 
         mIpCompose.onIpComposeActivityCreate(this, mIpComposeCallback, mHandler, mUiHandler,
@@ -3078,6 +3379,7 @@ public class ComposeMessageActivity extends Activity
 
         // Initialize members for UI elements.
         initResourceRefs();
+        initShareButton();		///[ramos] added by shuyong
         /// M: Code analyze 006, Control Sub indicator on status bar. @{
         mStatusBarManager = (StatusBarManager) getSystemService(Context.STATUS_BAR_SERVICE);
         mComponentName = getComponentName();
@@ -3089,6 +3391,10 @@ public class ComposeMessageActivity extends Activity
 
         mContentResolver = getContentResolver();
         mBackgroundQueryHandler = new BackgroundQueryHandler(mContentResolver);
+		//[ramos]added by liting 20150909
+        TelecomManager telecomManager = TelecomManager.from(this);
+		phoneAccountsList =telecomManager.getCallCapablePhoneAccounts();
+		//[ramos]end liting
 
         initialize(savedInstanceState, 0);
 
@@ -3108,11 +3414,174 @@ public class ComposeMessageActivity extends Activity
 
         this.registerReceiver(mSubReceiver, intentFilter);
         /// @}
+		//[ramos] added by liting 20151020 for Sub Choose
+		initRamosSubChoosePanel();
+		if(!isActionMode()){
+		    showRamosSubChoosePanel();
+		}
+		//[ramos] end liting 
 
         mStatusBarSelectorReceiver = new StatusBarSelectorReceiver(this);
         IntentFilter statusBarSelectorIntentFilter = new IntentFilter(StatusBarSelectorReceiver.ACTION_MMS_ACCOUNT_CHANGED);
         registerReceiver(mStatusBarSelectorReceiver, statusBarSelectorIntentFilter);
     }
+
+    //[ramos]added by liting 20150910
+    @Override
+    public boolean onPopupItemClick(int itemId) {
+    	ContactList contacts = getRecipients();
+        Contact c = contacts.get(0);
+        switch (itemId) {
+	        case MENU_CALL_RECIPIENT:
+	        	dialRecipient(false);
+	            break;
+			//[ramos] added by liting 20151016 for Dual Call
+	        case MENU_CALL_RECIPIENTSIM1:
+	        	dialRecipientSIM1(false);
+	            break;
+			case MENU_CALL_RECIPIENTSIM2:
+				dialRecipientSIM2(false);
+				break;
+			//[ramos] end liting
+			case MENU_SHOW_CONTACT:
+				hideInputMethod();
+				mQuickContact.onClick(mActionBarCustomView);
+				break;
+			case MENU_CREATE_CONTACT:
+                mAddContactIntent = ConversationList.createAddContactIntent(getRecipients().get(0).getNumber());
+                startActivityForResult(mAddContactIntent, REQUEST_CODE_ADD_CONTACT);
+                break;
+			case MENU_ADD_ADDRESS_TO_NEW_CONTACT:
+            	mNewContactIntent = ConversationList.createNewContactIntent(c.getNumber());
+            	startActivityForResult(mNewContactIntent, REQUEST_CODE_NEW_CONTACT);
+                break;
+			case MENU_ENTRY_EDIT_MODE:
+				startActionMode(mActionModeListener);
+				break;
+        }
+
+        return true;
+    }
+    //[ramos]end liting
+	//[ramos] added by liting 20151020 for Sub Choose
+	private View mRamosSubChoosePanel;
+	private TextView mRamosSubSimText1;
+	private TextView mRamosSubSimText2;
+	private LinearLayout mRamosSubSim1;
+	private LinearLayout mRamosSubSim2;
+    //[ramos] modified by liting 20151130 for BUG0010681
+    private void initRamosSubChoosePanel() {
+
+        mRamosSubChoosePanel = findViewById(R.id.ramos_sub_choose_panel);
+        mRamosSubSim1 = (LinearLayout) findViewById(R.id.sub_sim1);
+        mRamosSubSim1.setOnClickListener(this);
+        mRamosSubSim2 = (LinearLayout) findViewById(R.id.sub_sim2);
+        mRamosSubSim2.setOnClickListener(this);
+        mRamosSubSimText1 = (TextView) findViewById(R.id.sub_sim1_text);
+        mRamosSubSimText2 = (TextView) findViewById(R.id.sub_sim2_text);
+
+    }
+    //[ramos] end liting
+	private void showRamosSubChoosePanel() {
+		final SubscriptionManager subscriptionManager = SubscriptionManager.from(ComposeMessageActivity.this);
+		if (mSubCount <= 1) {
+			mRamosSubChoosePanel.setVisibility(View.GONE);
+		} else {
+			mRamosSubChoosePanel.setVisibility(View.VISIBLE);
+			if (mSubInfoList.get(0).getDisplayName().toString() == null ) {
+				mRamosSubSimText1.setText(R.string.sub_choose_sim1);
+			} else {
+				mRamosSubSimText1.setText(mSubInfoList.get(0).getDisplayName().toString());
+			}
+			if (mSubInfoList.get(1).getDisplayName().toString() == null ) {
+				mRamosSubSimText2.setText(R.string.sub_choose_sim2);
+			} else {
+				mRamosSubSimText2.setText(mSubInfoList.get(1).getDisplayName().toString());
+			}
+            SubscriptionInfo subInfo = SubscriptionManager.from(ComposeMessageActivity.this)
+                    .getActiveSubscriptionInfo(mConversation.getConvSubId());
+            if (null != subInfo) {
+                subscriptionManager.setDefaultSmsSubId(subInfo.getSubscriptionId());
+                showSim1OrSim2SendButton(subInfo.getSubscriptionId());
+            } else {
+                showSim1OrSim2SendButton(SubscriptionManager.getDefaultSmsSubId());
+            }
+		}
+	}
+	private void showSim1OrSim2SendButton(int SelectedSubId) {
+		if (SelectedSubId == mSubInfoList.get(0).getSubscriptionId()) {
+			mRamosSubSim1.setBackgroundResource(R.drawable.sms_bg_sim_sel);
+			mRamosSubSimText1.setTextColor(getResources().getColor(R.color.ramos_sub_sim_sel));
+			mRamosSubSimText1.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim1_sel), null, 
+				getResources().getDrawable(R.drawable.sms_icon_sel), null);
+			mRamosSubSim2.setBackgroundResource(R.drawable.sms_bg_sim_nor);
+			mRamosSubSimText2.setTextColor(getResources().getColor(R.color.ramos_sub_sim_nor));
+			mRamosSubSimText2.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim2_nor), null, null, null);
+		} else if (SelectedSubId == mSubInfoList.get(1).getSubscriptionId()) {
+			mRamosSubSim2.setBackgroundResource(R.drawable.sms_bg_sim_sel);
+			mRamosSubSimText2.setTextColor(getResources().getColor(R.color.ramos_sub_sim_sel));
+			mRamosSubSimText2.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim2_sel), null, 
+				getResources().getDrawable(R.drawable.sms_icon_sel), null);
+			mRamosSubSim1.setBackgroundResource(R.drawable.sms_bg_sim_nor);
+			mRamosSubSimText1.setTextColor(getResources().getColor(R.color.ramos_sub_sim_nor));
+			mRamosSubSimText1.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim1_nor), null, null, null);
+		} else {
+			mRamosSubSim1.setBackgroundResource(R.drawable.sms_bg_sim_nor);
+			mRamosSubSimText1.setTextColor(getResources().getColor(R.color.ramos_sub_sim_nor));
+			mRamosSubSimText1.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim1_nor), null,null, null);
+			mRamosSubSim2.setBackgroundResource(R.drawable.sms_bg_sim_nor);
+			mRamosSubSimText2.setTextColor(getResources().getColor(R.color.ramos_sub_sim_nor));
+			mRamosSubSimText2.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim2_nor), null, null, null);
+		}
+
+		int currentSimMode = Settings.System.getInt(ComposeMessageActivity.this.getContentResolver(),
+				Settings.System.MSIM_MODE_SETTING, -1);
+		boolean SimMode1 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(0).getSimSlotIndex())) != 0;
+		boolean SimMode2 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(1).getSimSlotIndex())) != 0;
+
+        //[ramos] begin by liting 20151228 for BUG0012078
+        int airplaneMode = Settings.System.getInt(ComposeMessageActivity.this.getContentResolver(), Settings.System.AIRPLANE_MODE_ON, 0);
+        if (airplaneMode == 1) {
+			mRamosSubSim1.setEnabled(false);
+			mRamosSubSim2.setEnabled(false);
+			mRamosSubSimText1.setTextColor(getResources().getColor(R.color.ramos_sub_sim_dis));
+			mRamosSubSimText2.setTextColor(getResources().getColor(R.color.ramos_sub_sim_dis));
+			mRamosSubSimText1.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim1_dis), null, null, null);
+			mRamosSubSimText2.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim2_dis), null, null, null);
+			mRamosSubSim1.setBackgroundResource(R.drawable.sms_bg_sim_dis);
+			mRamosSubSim2.setBackgroundResource(R.drawable.sms_bg_sim_dis);
+        } else {
+        
+    		if( SimMode1 && SimMode2) {
+    			mRamosSubSim1.setEnabled(true);
+    			mRamosSubSim2.setEnabled(true);
+    		} else if (SimMode1) {
+    			mRamosSubSim1.setEnabled(true);
+    			mRamosSubSim2.setEnabled(false);
+    			mRamosSubSimText2.setTextColor(getResources().getColor(R.color.ramos_sub_sim_dis));
+    			mRamosSubSimText2.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim2_dis), null, null, null);
+    			mRamosSubSim2.setBackgroundResource(R.drawable.sms_bg_sim_dis);
+    		} else if (SimMode2) {
+    			mRamosSubSim1.setEnabled(false);
+    			mRamosSubSim2.setEnabled(true);
+    			mRamosSubSimText1.setTextColor(getResources().getColor(R.color.ramos_sub_sim_dis));
+    			mRamosSubSimText1.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim1_dis), null, null, null);
+    			mRamosSubSim1.setBackgroundResource(R.drawable.sms_bg_sim_dis);
+    		} else {
+    			mRamosSubSim1.setEnabled(false);
+    			mRamosSubSim2.setEnabled(false);
+    			mRamosSubSimText1.setTextColor(getResources().getColor(R.color.ramos_sub_sim_dis));
+    			mRamosSubSimText2.setTextColor(getResources().getColor(R.color.ramos_sub_sim_dis));
+    			mRamosSubSimText1.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim1_dis), null, null, null);
+    			mRamosSubSimText2.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim2_dis), null, null, null);
+    			mRamosSubSim1.setBackgroundResource(R.drawable.sms_bg_sim_dis);
+    			mRamosSubSim2.setBackgroundResource(R.drawable.sms_bg_sim_dis);
+    		}
+        }
+        //[ramos] end liting
+	}
+
+	//[ramos] end liting 
 
     private void showSubjectEditor(boolean show) {
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
@@ -3125,6 +3594,7 @@ public class ComposeMessageActivity extends Activity
             if (show == false) {
                 return;
             }
+            mSubjectDivider = findViewById(R.id.subject_divider);	///[ramos] add by shuyong
             mSubjectTextEditor = (EditText)findViewById(R.id.subject);
             /// M: Code analyze 068, Unknown. Why delete these code? @{
             /// mSubjectTextEditor.setFilters(new InputFilter[] {
@@ -3167,7 +3637,7 @@ public class ComposeMessageActivity extends Activity
         }
 
         mSubjectTextEditor.setVisibility(show ? View.VISIBLE : View.GONE);
-
+		mSubjectDivider.setVisibility(show ? View.VISIBLE : View.GONE);		///[ramos] add by shuyong
         mSubjectTextEditor.setOnTouchListener(new OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -3204,7 +3674,10 @@ public class ComposeMessageActivity extends Activity
         if (mOpComposeExt.hideOrShowTopPanel(mTopPanel)) {
             return;
         }
-        boolean anySubViewsVisible = (isSubjectEditorVisible() || isRecipientsEditorVisible());
+        //[ramos] modified by liting 20151121 for mTopPanel.setVisibility(Gone) when mSubjectTextEditor is visible 
+        //boolean anySubViewsVisible = (isSubjectEditorVisible() || isRecipientsEditorVisible());
+        boolean anySubViewsVisible = (isRecipientsEditorVisible());
+        //[ramos] end liting
         mTopPanel.setVisibility(anySubViewsVisible ? View.VISIBLE : View.GONE);
     }
 
@@ -3330,6 +3803,9 @@ public class ComposeMessageActivity extends Activity
 
         // Let the working message know what conversation it belongs to
         mWorkingMessage.setConversation(mConversation);
+        //[ramos] begin by liting 20151216 for BUG0011442
+        initMenuPanel();
+		//[ramos] end liting
 
         // need init cc editor no matter recipient editor show or not
         mOpComposeExt.onInitialize(intent, mWorkingMessage.mOpWorkingMessageExt);
@@ -3571,6 +4047,11 @@ public class ComposeMessageActivity extends Activity
             mConversation = conversation;
             /// @}
 
+            //[ramos] begin by liting 20160218 for BUG0012644
+            if(isActionMode()){
+                mActionMode.finish();
+            }
+            //[ramos] end liting
             initialize(null, originalThreadId);
             /// M: add for attach dialog do not dismiss when enter other thread. @{
             if (!mSoloAlertDialog.needShow()) {
@@ -3676,7 +4157,10 @@ public class ComposeMessageActivity extends Activity
         /// @}
 
         /// M: Code analyze 036, Change text size if adjust font size.@{
-        float textSize = MessageUtils.getPreferenceValueFloat(this, SettingListActivity.TEXT_SIZE, 18);
+		//[ramos] modified by liting 20151021 for BUG0008565 
+        //float textSize = MessageUtils.getPreferenceValueFloat(this, SettingListActivity.TEXT_SIZE, 18);
+        float textSize = MessageUtils.getPreferenceValueFloat(this, SettingListActivity.TEXT_SIZE, 15);
+		//[ramos] end liting 
         setTextSize(textSize);
         /// @}
 
@@ -3715,7 +4199,10 @@ public class ComposeMessageActivity extends Activity
                     + ", feature FEATURE_NO_TITLE: "
                     + getWindow().hasFeature(Window.FEATURE_NO_TITLE));
         } else {
-            actionBar.setDisplayHomeAsUpEnabled(true);
+            //[ramos] begin liting 20160125
+            //actionBar.setDisplayHomeAsUpEnabled(true);
+            actionBar.setDisplayHomeAsUpEnabled(false);
+            //[ramos] end liting
         }
         /// @}
 
@@ -3733,6 +4220,11 @@ public class ComposeMessageActivity extends Activity
             getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE |
                     WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
         }
+		//[ramos] modified by liting 20151023 for BUG0009263 & BUG0009507
+		if (mActionMode == null) {
+			initRamosSubChoosePanel();
+    	}
+		//[ramos] end liting
         ///M: WFC: Show notification ticker @ {
         if (ImsManager.isWfcEnabledByPlatform(getApplicationContext())) {
             MessagingNotification.showWfcNotification(getApplicationContext());
@@ -3967,6 +4459,9 @@ public class ComposeMessageActivity extends Activity
         if (mOldThreadID == -1 && mConversation != null) {
             mOldThreadID = mConversation.getThreadId();
         }
+		//[ramos] begin by liting 20151216 for BUG0011442 & BUG0012440
+        updateMenuPanel();
+		//[ramos] end liting
     }
 
     @Override
@@ -4326,7 +4821,13 @@ public class ComposeMessageActivity extends Activity
                     return true;
                 }
                 /// @}
-
+				///[ramos] shuyong begin
+                if ( isSubjectEditorVisible() && mSubjectTextEditor.length() == 0){
+                    mSubjectTextEditor.setVisibility(View.GONE);
+                    mSubjectDivider.setVisibility(View.GONE); // [ramos] added by shuyong
+                    return true;
+                }
+				///[ramos]end
                 // M: when out of composemessageactivity,try to send read report
                 if (FeatureOption.MTK_SEND_RR_SUPPORT) {
                     checkAndSendReadReport();
@@ -4444,6 +4945,11 @@ public class ComposeMessageActivity extends Activity
             /// M: Code analyze 059, Set the pick button visible or
             /// invisible the same as recipient editor.
             mRecipientsPicker.setVisibility(View.GONE);
+			//[ramos]added by liting 20151009
+			mRecipientsText.setVisibility(View.GONE);
+			mRecipientsSubText.setVisibility(View.GONE);
+			getActionBar().show();
+			//[ramos] end liting
             /// @}
             hideOrShowTopPanel();
             mRecipientsEditor.recycleBitmap();
@@ -4451,8 +4957,14 @@ public class ComposeMessageActivity extends Activity
     }
 
     private boolean isRecipientsEditorVisible() {
-        return (null != mRecipientsEditor)
-                    && (View.VISIBLE == mRecipientsEditor.getVisibility());
+		//[ramos] moidified by liting 20150925
+        //return (null != mRecipientsEditor)
+        //            && (View.VISIBLE == mRecipientsEditor.getVisibility());
+        return ((null != mRecipientsEditor)
+                    && (View.VISIBLE == mRecipientsEditor.getVisibility())
+                    || (null != mRecipientsText)
+                    && (View.VISIBLE == mRecipientsText.getVisibility()));
+		//[ramos] end liting
     }
 
     private boolean isSubjectEditorVisible() {
@@ -4550,10 +5062,10 @@ public class ComposeMessageActivity extends Activity
                         && !mWorkingMessage.hasAttachment())
                         || !mIsSmsEnabled) {
             mSendButtonMms.setCompoundDrawablesWithIntrinsicBounds(null, null, null,
-                getResources().getDrawable(R.drawable.ic_send_sms_unsend));
+                getResources().getDrawable(R.drawable.ramos_ic_send_sms_unsend)); //[ramos] liting : ic_send_sms_unsend
         } else {
             mSendButtonMms.setCompoundDrawablesWithIntrinsicBounds(null, null, null,
-                    getResources().getDrawable(R.drawable.ic_send_ipmsg));
+                    getResources().getDrawable(R.drawable.ramos_ic_send_ipmsg));//[ramos] liting : ic_send_ipmsg
             }
             showButton = mSendButtonMms;
             hideButton = mSendButtonSms;
@@ -4565,9 +5077,9 @@ public class ComposeMessageActivity extends Activity
                         || recipientCount() > MmsConfig.getSmsRecipientLimit()
                         || !mIsSmsEnabled) {
                     ///@}
-                    mSendButtonSms.setImageResource(R.drawable.ic_send_sms_unsend);
+                    mSendButtonSms.setImageResource(R.drawable.ramos_ic_send_sms_unsend);//[ramos] liting : ic_send_sms_unsend
                 } else {
-                    mSendButtonSms.setImageResource(R.drawable.ic_send_ipmsg);
+                    mSendButtonSms.setImageResource(R.drawable.ramos_ic_send_ipmsg);//[ramos] liting : ic_send_ipmsg
                 }                
             }
             showButton = mSendButtonSms;
@@ -4659,6 +5171,74 @@ public class ComposeMessageActivity extends Activity
         }
         return (recipients.size() == 1 && !recipients.containsEmail());
     }
+    //[ramos] begin by liting 20151216 for BUG0011442
+    private void showCallSubSelectedDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        mCallSubDialog = builder.create();
+        mCallSubDialog.show();
+        LayoutParams layoutParams;
+        layoutParams = mCallSubDialog.getWindow().getAttributes();
+        layoutParams.width = getResources().getDimensionPixelSize(R.dimen.ramos_dialog_width);
+        mCallSubDialog.getWindow().setAttributes(layoutParams); 
+        mCallSubDialog.setContentView(R.layout.ramos_dial_dialog);
+        mCallSubDialog.setCancelable(true);
+        mCallSubDialog.setCanceledOnTouchOutside(true);
+        LinearLayout mCard1 = (LinearLayout) mCallSubDialog.findViewById(R.id.ramos_card_one);
+        mCard1.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    dialRecipientSIM1(false);
+                    mCallSubDialog.dismiss();
+                }
+            });
+        LinearLayout mCard2 = (LinearLayout) mCallSubDialog.findViewById(R.id.ramos_card_two);
+        mCard2.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    dialRecipientSIM2(false);
+                    mCallSubDialog.dismiss();
+                }
+            });
+        TextView mTextCard1 = (TextView) mCallSubDialog.findViewById(R.id.btn_sim1_call);
+        TextView mTextCard2 = (TextView) mCallSubDialog.findViewById(R.id.btn_sim2_call);
+        mTextCard1.setText(mSubInfoList.get(0).getDisplayName().toString());
+        mTextCard2.setText(mSubInfoList.get(1).getDisplayName().toString());
+    }
+
+    private void dialRecipientRamosMenu(Boolean isVideoCall) {
+        TelephonyManager telephony = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        if (telephony != null && telephony.isVoiceCapable()) {
+            if (mSubCount <= 1) {
+                if (isRecipientCallable()) {
+                    String number = getRecipients().get(0).getNumber();
+                    Intent dialIntent ;
+                    if (isVideoCall) {
+                        dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+                        dialIntent.putExtra("com.android.phone.extra.video", true);
+                    } else {
+                        //[ramos] added by liting 20151016 for Dual Call
+                        //dialIntent = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + number));
+                        dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+                        //[ramos] end liting
+                    }
+                    hideInputMethod();
+                    startActivity(dialIntent);
+                }
+            } else {
+                int currentSimMode = Settings.System.getInt(ComposeMessageActivity.this.getContentResolver(),
+                        Settings.System.MSIM_MODE_SETTING, -1);
+                boolean SimMode1 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(0).getSimSlotIndex())) != 0;
+                boolean SimMode2 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(1).getSimSlotIndex())) != 0;
+                if( SimMode1 && SimMode2) {
+                    showCallSubSelectedDialog();                   
+                } else if (SimMode1) {
+                    dialRecipientSIM1(false);
+                } else if (SimMode2) {
+                    dialRecipientSIM2(false);
+                }
+            }
+        }
+
+    }
+	//[ramos] end liting
     /// M: Code analyze 061, Add video call menu.
     private void dialRecipient(Boolean isVideoCall) {
         if (isRecipientCallable()) {
@@ -4669,13 +5249,56 @@ public class ComposeMessageActivity extends Activity
                 dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
                 dialIntent.putExtra("com.android.phone.extra.video", true);
             } else {
-                dialIntent = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + number));
+				//[ramos] added by liting 20151016 for Dual Call
+                //dialIntent = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + number));
+                dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+				//[ramos] end liting
             }
             hideInputMethod();
             startActivity(dialIntent);
         }
     }
     /// @}
+    
+	//[ramos] added by liting 20151016 for Dual Call
+	private void dialRecipientSIM1(Boolean isVideoCall) {
+        if (isRecipientCallable()) {
+            String number = getRecipients().get(0).getNumber();
+            Intent dialIntent ;
+            if (isVideoCall) {
+                dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+                dialIntent.putExtra("com.android.phone.extra.video", true);
+            } else {
+				getTelecomManager().setUserSelectedOutgoingPhoneAccount(phoneAccountsList.get(0));
+                dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+            }
+            hideInputMethod();
+            startActivity(dialIntent);
+			
+        }
+	}
+	
+	private void dialRecipientSIM2(Boolean isVideoCall) {
+        if (isRecipientCallable()) {
+            String number = getRecipients().get(0).getNumber();
+            Intent dialIntent ;
+            if (isVideoCall) {
+                dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+                dialIntent.putExtra("com.android.phone.extra.video", true);
+            } else {
+				getTelecomManager().setUserSelectedOutgoingPhoneAccount(phoneAccountsList.get(1));
+                dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+            }
+            hideInputMethod();
+            startActivity(dialIntent);
+			
+        }
+	}
+	
+    private TelecomManager getTelecomManager() {
+        return (TelecomManager) this.getSystemService(Context.TELECOM_SERVICE);
+    }
+	//[ramos] end liting
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
@@ -4784,7 +5407,13 @@ public class ComposeMessageActivity extends Activity
         mOpComposeExt.onPrepareOptionsMenu(menu, mIsSmsEnabled,
                 isRecipientsEditorVisible(), contactSize, mConversation.getThreadId());
 
-        // add for ipmessage
+        //[ramos]added by liting 20150908
+        MenuItem item = menu.add(0, MENU_MORE, 0, R.string.menu_option)
+                .setIcon(R.drawable.ramos_menu_more)
+                .setTitle(R.string.menu_option);
+        item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        menu.clear();
+        //[ramos]end liting
         mIpCompose.onIpPrepareOptionsMenu(mConversation.getIpConv(this), menu);
 
         return true;
@@ -4947,6 +5576,26 @@ public class ComposeMessageActivity extends Activity
                 startActivityForResult(intentSelectMessage, REQUEST_CODE_FOR_MULTIDELETE);
                 mIsStartMultiDeleteActivity = true;
                 break;
+            //[ramos]added by liting 20150908
+            case MENU_MORE:
+                mPopupWindow = new RamosPopupMenuWindow(this, getWindow().getDecorView());
+                mPopupWindow.setOnPopupItemClickListener(this);
+                mPopupWindow.setTitle(getString(R.string.menu_option));
+                mPopupWindow.init();
+                if (getRecipients().size() == 1) {
+                    updatePopupWindow();
+                    mPopupWindow.show();
+                } else if (getRecipients().size() > 1) {
+                    showGroupRecipientsPopupMenu();
+                } else {
+                    MmsLog.d(TAG, "getRecipients().size() < 1");
+                    updatePopupWindow();
+                    mPopupWindow.show();
+                }
+                break;
+            case MENU_ENTRY_EDIT_MODE:
+                startActionMode(mActionModeListener);
+			//[ramos] end liting
             default:
                 MmsLog.d(TAG, "unkown option.");
                 break;
@@ -4954,7 +5603,217 @@ public class ComposeMessageActivity extends Activity
 
         return true;
     }
+	//[ramos] added by liting 20151030 for BUG0009298
+	private int recipientsId;
+	private void showGroupRecipientsPopupMenu() {
 
+		RamosPopupMenuWindow GroupRecipientsPopupMenu = new RamosPopupMenuWindow(this, getWindow().getDecorView());
+		GroupRecipientsPopupMenu.setOnPopupItemClickListener(new RamosPopupMenuWindow.OnPopupItemClickListener() { 	
+			@Override
+			public boolean onPopupItemClick(int itemId) {
+				recipientsId = itemId;
+				updateRecipientsPopupWindow(recipientsId);
+				return true;
+			}
+		});
+
+		GroupRecipientsPopupMenu.setTitle(getString(R.string.menu_option));
+		GroupRecipientsPopupMenu.init();
+		GroupRecipientsPopupMenu.clear();
+		for (int count = 0; count < getRecipients().size(); count++) {
+			String number = mConversation.getRecipients().get(count).getNumber();
+			String name = Contact.get(number, false).getName();
+			GroupRecipientsPopupMenu.addItem(count, name, true);
+		}
+		GroupRecipientsPopupMenu.show();
+	}
+
+	private void updateRecipientsPopupWindow(int recipientsId) {
+		
+		RamosPopupMenuWindow mRecipientsPopupMenu = new RamosPopupMenuWindow(this, getWindow().getDecorView());
+		mRecipientsPopupMenu.setOnPopupItemClickListener(new RamosPopupMenuWindow.OnPopupItemClickListener() { 	
+			@Override
+			public boolean onPopupItemClick(int itemId) {
+				View v = findViewById(itemId);
+				if(null != v)
+					mRecipientsOnClickListener.onClick(v);
+				return true;
+			}
+		});
+		mRecipientsPopupMenu.setTitle(getString(R.string.menu_option));
+		mRecipientsPopupMenu.init();
+		mRecipientsPopupMenu.clear();
+        if (!isRecipientsEditorVisible()) {
+            Contact contact = getRecipients().get(recipientsId);
+            contact.reload(true);
+            if (contact.existsInDatabase()) {
+                mRecipientsPopupMenu.addItem(R.id.menu_show_contact, getString(R.string.menu_view_contact), true);
+            } else if (MessageUtils.canAddToContacts(contact)) {
+                mRecipientsPopupMenu.addItem(R.id.menu_create_contact, getString(R.string.menu_add_to_contacts), true);
+                mRecipientsPopupMenu.addItem(R.id.menu_add_address_to_new_contact, getString(R.string.menu_new_contact), true);
+            }
+            mRecipientsPopupMenu.addItem(R.id.menu_entry_edit_mode, getString(R.string.edit), true);
+    	}
+        TelephonyManager telephony = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        if (telephony != null && telephony.isVoiceCapable()) {
+            if (!isRecipientsEditorVisible()) {
+							
+				if (mSubCount <= 1) {
+					mRecipientsPopupMenu.addItem(R.id.menu_call_recipient, getString(R.string.menu_call), true);
+				} else {
+				
+					int currentSimMode = Settings.System.getInt(this.getContentResolver(),
+							Settings.System.MSIM_MODE_SETTING, -1);
+					boolean SimMode1 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(0).getSimSlotIndex())) != 0;
+					boolean SimMode2 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(1).getSimSlotIndex())) != 0;
+					if( SimMode1 && SimMode2) {
+		            	mRecipientsPopupMenu.addItem(R.id.menu_call_recipient_sim1, getString(R.string.menu_call_sim1), true);
+		            	mRecipientsPopupMenu.addItem(R.id.menu_call_recipient_sim2, getString(R.string.menu_call_sim2), true);
+					} else if (SimMode1) {
+		            	mRecipientsPopupMenu.addItem(R.id.menu_call_recipient_sim1, getString(R.string.menu_call_sim1), true);
+		            	mRecipientsPopupMenu.addItem(R.id.menu_call_recipient_sim2, getString(R.string.menu_call_sim2), false);
+					} else if (SimMode2) {
+		            	mRecipientsPopupMenu.addItem(R.id.menu_call_recipient_sim1, getString(R.string.menu_call_sim1), false);
+		            	mRecipientsPopupMenu.addItem(R.id.menu_call_recipient_sim2, getString(R.string.menu_call_sim2), true);
+					} else {
+		            	mRecipientsPopupMenu.addItem(R.id.menu_call_recipient_sim1, getString(R.string.menu_call_sim1), false);
+		            	mRecipientsPopupMenu.addItem(R.id.menu_call_recipient_sim2, getString(R.string.menu_call_sim2), false);
+					}
+				}
+            }
+        }
+		mRecipientsPopupMenu.show();
+	}
+
+	View.OnClickListener mRecipientsOnClickListener = new View.OnClickListener() {
+		@Override
+		public void onClick(View item) {
+			ContactList contacts = getRecipients();
+			Contact c = contacts.get(recipientsId);
+			c.reload(true);
+			switch (item.getId()) {
+				case R.id.menu_call_recipient:
+					dialRecipientMulti(false);
+					break;
+				case R.id.menu_call_recipient_sim1:
+					dialRecipientSIM1Multi(false);
+					break;
+				case R.id.menu_call_recipient_sim2:
+					dialRecipientSIM2Multi(false);
+					break;
+				case R.id.menu_show_contact:
+					hideInputMethod();
+					mQuickContact.assignContactUri(c.getUri());
+					mQuickContact.onClick(mActionBarCustomView);
+					break;
+				case R.id.menu_create_contact:
+					mAddContactIntent = ConversationList.createAddContactIntent(c.getNumber());
+					startActivityForResult(mAddContactIntent, REQUEST_CODE_ADD_CONTACT);
+					break;
+				case R.id.menu_add_address_to_new_contact:
+					mNewContactIntent = ConversationList.createNewContactIntent(c.getNumber());
+					startActivityForResult(mNewContactIntent, REQUEST_CODE_NEW_CONTACT);
+					break;
+				case R.id.menu_entry_edit_mode:
+					startActionMode(mActionModeListener);
+					break;
+			}
+		}
+	};	
+	
+    private void dialRecipientMulti(Boolean isVideoCall) {
+        String number = getRecipients().get(recipientsId).getNumber();
+        Intent dialIntent ;
+        if (isVideoCall) {
+            dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+            dialIntent.putExtra("com.android.phone.extra.video", true);
+        } else {
+            dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+        }
+        hideInputMethod();
+        startActivity(dialIntent);
+    }
+    
+	private void dialRecipientSIM1Multi(Boolean isVideoCall) {
+        String number = getRecipients().get(recipientsId).getNumber();
+        Intent dialIntent ;
+        if (isVideoCall) {
+            dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+            dialIntent.putExtra("com.android.phone.extra.video", true);
+        } else {
+			getTelecomManager().setUserSelectedOutgoingPhoneAccount(phoneAccountsList.get(0));
+            dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+        }
+        hideInputMethod();
+        startActivity(dialIntent);
+	}
+	
+	private void dialRecipientSIM2Multi(Boolean isVideoCall) {
+        String number = getRecipients().get(recipientsId).getNumber();
+        Intent dialIntent ;
+        if (isVideoCall) {
+            dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+            dialIntent.putExtra("com.android.phone.extra.video", true);
+        } else {
+			getTelecomManager().setUserSelectedOutgoingPhoneAccount(phoneAccountsList.get(1));
+            dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+        }
+        hideInputMethod();
+        startActivity(dialIntent);
+	}
+	//[ramos] end liting for BUG0009298
+
+	//[ramos] added by liting for BUG0008773 and BUG0008774
+    private static final int MODE_PHONE1_ONLY = 1;
+	private void updatePopupWindow() {
+		mPopupWindow.clear();
+        MmsLog.d(TAG, "updatePopupWindow().isRecipientsEditorVisible() =  "+isRecipientsEditorVisible());
+        if (!isRecipientsEditorVisible()) {
+            if (getRecipients().size() == 1) {
+                Contact contact = getRecipients().get(0);
+                contact.reload(true);
+                if (contact.existsInDatabase()) {
+                    mPopupWindow.addItem(MENU_SHOW_CONTACT, getString(R.string.menu_view_contact), true);
+                } else if (MessageUtils.canAddToContacts(contact)) {
+                    mPopupWindow.addItem(MENU_CREATE_CONTACT, getString(R.string.menu_add_to_contacts), true);
+                    mPopupWindow.addItem(MENU_ADD_ADDRESS_TO_NEW_CONTACT, getString(R.string.menu_new_contact), true);
+                }
+                mPopupWindow.addItem(MENU_ENTRY_EDIT_MODE, getString(R.string.edit), true);
+        	}
+    	}
+        TelephonyManager telephony = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        if (telephony != null && telephony.isVoiceCapable() && isRecipientCallable()) {
+            if (!isRecipientsEditorVisible()) {
+							
+				if (mSubCount <= 1) {
+					mPopupWindow.addItem(MENU_CALL_RECIPIENT, getString(R.string.menu_call), true);
+				} else {
+				
+					int currentSimMode = Settings.System.getInt(this.getContentResolver(),
+							Settings.System.MSIM_MODE_SETTING, -1);
+					//[ramos] added by liting 20151016 for Dual Call
+					boolean SimMode1 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(0).getSimSlotIndex())) != 0;
+					boolean SimMode2 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(1).getSimSlotIndex())) != 0;
+					if( SimMode1 && SimMode2) {
+		            	mPopupWindow.addItem(MENU_CALL_RECIPIENTSIM1, getString(R.string.menu_call_sim1), true);
+		            	mPopupWindow.addItem(MENU_CALL_RECIPIENTSIM2, getString(R.string.menu_call_sim2), true);
+					} else if (SimMode1) {
+		            	mPopupWindow.addItem(MENU_CALL_RECIPIENTSIM1, getString(R.string.menu_call_sim1), true);
+		            	mPopupWindow.addItem(MENU_CALL_RECIPIENTSIM2, getString(R.string.menu_call_sim2), false);
+					} else if (SimMode2) {
+		            	mPopupWindow.addItem(MENU_CALL_RECIPIENTSIM1, getString(R.string.menu_call_sim1), false);
+		            	mPopupWindow.addItem(MENU_CALL_RECIPIENTSIM2, getString(R.string.menu_call_sim2), true);
+					} else {
+		            	mPopupWindow.addItem(MENU_CALL_RECIPIENTSIM1, getString(R.string.menu_call_sim1), false);
+		            	mPopupWindow.addItem(MENU_CALL_RECIPIENTSIM2, getString(R.string.menu_call_sim2), false);
+					}
+					//[ramos] end liting
+				}
+            }
+        }
+
+	}
+	//[ramos] end liting
     private void addAttachment(int type, boolean append) {
         if (!MessageUtils.allowSafeDraft(this, MmsConfig.getDeviceStorageFullStatus(), true,
                 TOAST_TYPE_FOR_ATTACH)) {
@@ -5223,6 +6082,30 @@ public class ComposeMessageActivity extends Activity
                     }
                 }
             }
+        // [ramos] add by shuyong begin
+        }else if (requestCode == REQUEST_CODE_NEW_CONTACT){
+            // The user might have added a new contact. When we tell contacts to add a contact
+            // and tap "Done", we're not returned to Messaging. If we back out to return to
+            // messaging after adding a contact, the resultCode is RESULT_CANCELED. Therefore,
+            // assume a contact was added and get the contact and force our cached contact to
+            // get reloaded with the new info (such as contact name). After the
+            // contact is reloaded, the function onUpdate() in this file will get called
+            // and it will update the title bar, etc.
+            if (mNewContactIntent != null) {
+                String address =
+                    mNewContactIntent.getStringExtra(ContactsContract.Intents.Insert.EMAIL);
+                if (address == null) {
+                    address =
+                        mNewContactIntent.getStringExtra(ContactsContract.Intents.Insert.PHONE);
+                }
+                if (address != null) {
+                    Contact contact = Contact.get(address, false);
+                    if (contact != null) {
+                        contact.reload();
+                    }
+                }
+            }
+        //[ramos] end
         }
 
         if (resultCode != RESULT_OK && requestCode == REQUEST_CODE_CREATE_SLIDESHOW
@@ -5418,6 +6301,26 @@ public class ComposeMessageActivity extends Activity
                 misPickContatct = false;
                 return;
                 /// @}
+			///[ramos] shuyong begin
+            case REQUEST_CODE_PICK_SINGLE:
+            	if(data != null){
+            		AddContactToEditor(data);
+            	}
+            	break;
+            ///[ramos] end
+            
+			//[ramos] added by liting 20151110 for BUG0008316
+            case REQUEST_CODE_TIMER:
+            	if(data != null){
+					mTimerView.setVisibility(View.VISIBLE);
+					SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm");  
+                    mTimeInMillis = Long.parseLong(data.getDataString());
+            		mTimerView.setText(format.format(Long.parseLong(data.getDataString())));
+					mSubjectDivider = findViewById(R.id.subject_divider);
+					mSubjectDivider.setVisibility(View.VISIBLE);
+        		}
+            	break;
+			//[ramos] end liting 
             /// M: Code analyze 015, Add text vcard. @{
             case REQUEST_CODE_TEXT_VCARD:
                 if (data != null) {
@@ -5667,6 +6570,10 @@ public class ComposeMessageActivity extends Activity
                             mRecipientsEditor.populate(list);
                         }
                         if (mRecipientsEditor != null && isRecipientsEditorVisible()) {
+							//[ramos] added by liting 20151007 for BUG0008443
+							if(View.VISIBLE != mRecipientsEditor.getVisibility())
+								mRecipientsEditor.setVisibility(View.VISIBLE);
+							//[ramos] end liting
                             mRecipientsEditor.requestFocus();
                         }
                         if (isDuplicate) {
@@ -6312,7 +7219,10 @@ public class ComposeMessageActivity extends Activity
         /// M: remove Google default code
         // Reset the counter for text editor.
         //resetCounter();
-
+        //[ramos] added by shuyong 20151124 for ComposeMessageActivity ActionMode
+        if(isActionMode())
+        	return;
+        ///[ramos] end
         mOpComposeExt.drawBottomPanel(mWorkingMessage.hasSlideshow(),
                 mWorkingMessage.getIsUpdateAttachEditor(), mIsSmsEnabled);
 
@@ -6441,6 +7351,9 @@ public class ComposeMessageActivity extends Activity
         if (mOpComposeExt.onClick(v, mRecipientsPicker)) {
             return;
         }
+		//[ramos] added by liting 20151020 for Sub Choose
+		final SubscriptionManager subscriptionManager = SubscriptionManager.from(ComposeMessageActivity.this);
+		//[ramos] end liting for Sub Choose
         if (v == mSendButtonSms || v == mSendButtonMms) {
             MmsLog.d(TAG, "onClick send button click!");
             if (mSendButtonCanResponse) {
@@ -6461,6 +7374,36 @@ public class ComposeMessageActivity extends Activity
                 }
             }
         /// @}
+        //[ramos] begin by liting 20151216 for BUG0011442
+        } else if (v == mContactAdd) {
+            mAddContactIntent = ConversationList.createAddContactIntent(getRecipients().get(0).getNumber());
+            startActivityForResult(mAddContactIntent, REQUEST_CODE_ADD_CONTACT);
+        } else if (v == mContactView) {
+            if (getRecipients().size() == 1) {
+                hideInputMethod();
+                mQuickContact.onClick(mActionBarCustomView);
+            } else if (getRecipients().size() > 1) {
+                Intent intent = new Intent(this, RamosRecipientListActivity.class);
+                intent.putExtra(THREAD_ID, mConversation.getThreadId());
+                startActivityForResult(intent, REQUEST_CODE_GROUP_PARTICIPANTS);
+            } else {
+                MmsLog.d(TAG, "onClick() : getRecipients().size() < 1");
+            }
+        } else if (v == mContactCall) {
+            dialRecipientRamosMenu(false);
+        } else if (v == mRamosSubSim1) {
+            if (mSubCount > 0) {
+                mSelectedSubId = mSubInfoList.get(0).getSubscriptionId();
+                subscriptionManager.setDefaultSmsSubId(mSelectedSubId);
+                showSim1OrSim2SendButton(mSelectedSubId);
+            }
+        } else if (v == mRamosSubSim2) {
+            if (mSubCount > 1) {
+                mSelectedSubId = mSubInfoList.get(1).getSubscriptionId();
+                subscriptionManager.setDefaultSmsSubId(mSelectedSubId);
+                showSim1OrSim2SendButton(mSelectedSubId);
+            }
+		//[ramos] end liting for Sub Choose
         } else if ((v == mRecipientsPicker)) {
              /// M: Code analyze 013, Get contacts from Contact app . @{
              //launchMultiplePhonePicker();
@@ -6473,6 +7416,23 @@ public class ComposeMessageActivity extends Activity
                 }
             }
              /// @}
+		 //[ramos]added by liting 20150907
+		 } else if (v == mRecipientsBack){
+			 exitComposeMessageActivity(new Runnable() {
+				 @Override
+				 public void run() {
+					 finish();
+				 }
+			 });
+		 } else if (v == mRecipientsText){
+			 mRecipientsEditor.setVisibility(View.VISIBLE);
+			 mRecipientsEditor.requestFocus();
+			 mRecipientsText.setVisibility(View.GONE);
+         //[ramos] added by liting 20151110 for BUG0008316
+         } else if (v == mTimerView) {
+             mTimerIntent.putExtra("TimeInMillis", mTimeInMillis);
+             startActivityForResult(mTimerIntent, REQUEST_CODE_TIMER);
+		 //[ramos]end liting
         }
     }
 
@@ -6686,7 +7646,9 @@ public class ComposeMessageActivity extends Activity
         /// M: bounds at the bottom.  The background is also drawn in code to avoid drawing
         /// M: the top edge.
         mMsgListView.setClipChildren(false);
-
+        //[ramos] added by liting 20151204 for the message display from Top to Bottom 
+        mMsgListView.setStackFromBottom(false);
+        //[ramos] end liting
         mBottomPanel = findViewById(R.id.bottom_panel);
         mTextEditor = (EnhanceEditText) findViewById(R.id.embedded_text_editor);
         /// M: @{
@@ -6701,6 +7663,13 @@ public class ComposeMessageActivity extends Activity
             public boolean onKey(View v, int keyCode, KeyEvent event) {
                 // add for ipmessage
                 mIpCompose.onIpTextEditorKey(v, keyCode, event);
+                //[ramos] added by liting 20151110 for BUG0008316
+                if (isTimerEditorVisible() && (keyCode == KeyEvent.KEYCODE_DEL) && (mTextEditor.length() == 0)) {
+                    mTimerView.setVisibility(View.GONE);
+                    mSubjectDivider.setVisibility(View.GONE);
+                    return true;
+                }
+                //[ramos] end liting
                 return false;
             }
         });
@@ -6731,6 +7700,10 @@ public class ComposeMessageActivity extends Activity
                 }
             }
         });
+		//[ramos] added by liting 20151110 for BUG0008316
+		mTimerView = (TextView) findViewById(R.id.timer);
+		mTimerView.setOnClickListener(this);
+		//[ramos]end liting
 
         mTextCounter = (TextView) findViewById(R.id.text_counter);
         mSendButtonMms = (TextView) findViewById(R.id.send_button_mms);
@@ -6749,11 +7722,15 @@ public class ComposeMessageActivity extends Activity
                 (TextView) findViewById(R.id.ct_text_counter),
                 mAttachmentEditor.mOpAttachmentEditorExt);
     }
-
-    private void confirmDeleteDialog(OnClickListener listener, boolean locked) {
+	//[ramos] modified by liting 20151015
+    //private void confirmDeleteDialog(OnClickListener listener, boolean locked) {
+    private void confirmDeleteDialog(final OnClickListener listener, boolean locked) {
+    //[ramos] end liting
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         /// M: Code analyze 027,Add for deleting one message.@{
         // Set different title and icon for locked message.
+	//[ramos] modified by liting 20151015
+/*
         builder.setTitle(locked ? R.string.confirm_dialog_locked_title :
             R.string.confirm_dialog_title);
         builder.setIconAttribute(android.R.attr.alertDialogIcon);
@@ -6764,6 +7741,43 @@ public class ComposeMessageActivity extends Activity
         builder.setPositiveButton(R.string.delete, listener);
         builder.setNegativeButton(R.string.no, null);
         builder.show();
+*/
+        mDeleteDialog = builder.create();
+		mDeleteDialog.show();
+		LayoutParams layoutParams;
+		layoutParams = mDeleteDialog.getWindow().getAttributes();
+		layoutParams.width = getResources().getDimensionPixelSize(R.dimen.ramos_dialog_width);//(int) (d.getWidth());
+		//layoutParams.height = getResources().getDimensionPixelSize(R.dimen.ramos_dialog_height);//(int) (d.getWidth());
+		mDeleteDialog.getWindow().setAttributes(layoutParams); 
+		mDeleteDialog.setContentView(R.layout.ramos_dialog_delete);
+		mDeleteDialog.setCancelable(true);
+		mDeleteDialog.setCanceledOnTouchOutside(true);
+		TextView title = (TextView) mDeleteDialog.findViewById(R.id.title);
+		title.setSingleLine(true);
+		title.setText(R.string.confirm_dialog_title);
+		TextView message = (TextView) mDeleteDialog.findViewById(R.id.message);
+		
+		int cnt = mMsgListAdapter.getSelectedNumber();
+		message.setText(this.getResources().getQuantityString(
+			R.plurals.confirm_delete_message, cnt, cnt));
+		Button btnLeft = (Button) mDeleteDialog.findViewById(R.id.btn_left);
+		btnLeft.setOnClickListener(new View.OnClickListener() {
+				public void onClick(View v) {
+					mDeleteDialog.dismiss();
+				}
+			});
+		Button btnRight = (Button) mDeleteDialog.findViewById(R.id.btn_right);
+		btnRight.setOnClickListener(new View.OnClickListener() {
+				public void onClick(View v) {
+					listener.onClick(mDeleteDialog, 0);
+					mDeleteDialog.dismiss();
+					if(isActionMode()){
+						mActionMode.finish();
+					}
+				}
+			});
+		//[ramos] end liting
+
     }
 
     void undeliveredMessageDialog(long date) {
@@ -6873,7 +7887,10 @@ public class ComposeMessageActivity extends Activity
         mMsgListView.setSelector(android.R.color.transparent);
         mMsgListView.setItemsCanFocus(false);
         mMsgListView.setVisibility(View.VISIBLE);
-        mMsgListView.setOnCreateContextMenuListener(mMsgListMenuCreateListener);
+        //[ramos] added by liting 20151214 for BUG0011441
+        //mMsgListView.setOnCreateContextMenuListener(mMsgListMenuCreateListener);
+        mMsgListView.setOnItemLongClickListener(new ItemLongClickListener());
+        //[ramos] end liting
         mMsgListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -7112,6 +8129,14 @@ public class ComposeMessageActivity extends Activity
 
             /// M: If msg can be sent, AttachmentEditor can not be reponsed.
             mClickCanResponse = false;
+			//[ramos] added by liting 20151110 for BUG0008316
+			if ((null != mTimerView) && (View.VISIBLE == mTimerView.getVisibility())) {
+            	mWorkingMessage.setTimerState(true);
+				mTimerView.setVisibility(View.GONE);
+			} else {
+            	mWorkingMessage.setTimerState(false);
+			}
+			//[ramos] end liting 
             /// M:the method is extend to support gemini @{
             mWorkingMessage.send(mDebugRecipients, mSelectedSubId);
             MmsLog.d(TAG, "Compose.sendMessage(): after sendMessage. mConversation.ThreadId=" + mConversation.getThreadId()
@@ -7654,6 +8679,20 @@ public class ComposeMessageActivity extends Activity
                         return;
                     }
                     /// @}
+                    //[ramos] added by liting 20151124 for ComposeMessageActivity ActionMode
+                    if (mMsgListAdapter.mIsDeleteMode) {
+                        MmsLog.d(TAG, "mMsgListAdapter.mIsDeleteMode  cursor.getCount()=  "+cursor.getCount());
+                        if (cursor.getCount() != 0) {
+                            mMsgListAdapter.initListMap(cursor);
+                        } else {
+                            if (cursor != null) {
+                                MmsLog.w(TAG, "onQueryComplete, cursor count is 0.");
+                                cursor.close();
+                                return;
+                            }
+                        }
+                    }
+                    //[ramos] end by liting 20151124 for ComposeMessageActivity ActionMode
                     if (isRecipientsEditorVisible()) {
                         MmsLog.d(TAG, "RecipientEditor visible, it means no messagelistItem!");
                         return;
@@ -7722,6 +8761,17 @@ public class ComposeMessageActivity extends Activity
 
                     mMsgListAdapter.changeCursor(cursor);
 
+                    //[ramos] added by liting 20151204 for the message display from Top to Bottom 
+                    if(mMsgListAdapter!=null && mMsgListAdapter.mIsDeleteMode == false){
+                        mMsgListView.setSelection(mMsgListAdapter.getCount()-1);
+                    }
+                    //[ramos] end liting
+                    //[ramos] begin liting 20160401  for BUG0014556
+                    if(mMsgListAdapter!=null && mMsgListAdapter.mIsDeleteMode == true){
+                        Log.d("litingnew","cursor.getPosition():  "+cursor.getPosition());
+                        mMsgListView.setSelection(cursor.getPosition());
+                    }
+                    //[ramos] end liting
                     if (newSelectionPos != -1) {
                         /// M: remove bug ALPS00404266 patch, keep item top @{
                         mMsgListView.setSelection(newSelectionPos);     // jump the list to the pos
@@ -8175,6 +9225,9 @@ public class ComposeMessageActivity extends Activity
     private int mAssociatedSubId;
     private int mSelectedSubId;
      /// @}
+     //[ramos] added by liting 20151020 for BUG0008330
+     private Thread mSaveMsgAfterSelectSubThread = null;
+     //[ramos] end liting BUG0008330
 
      /// M: Code analyze 006, Control Sub indicator on status bar. @{
      private StatusBarManager mStatusBarManager;
@@ -9571,6 +10624,16 @@ public class ComposeMessageActivity extends Activity
                 mIsSoftKeyBoardShow = true;
             }
             /// @}
+            //[ramos] added by liting 20151022 for BUG0008835
+			if (mIsSoftKeyBoardShow) {
+				mUiHandler.post(new Runnable() {
+					public void run() {
+						MmsLog.d(TAG, "hideRamosPanel()");
+						hideRamosPanel();
+					}
+				});
+			}
+            //[ramos] end liting
             mMaxHeight = (h > mMaxHeight) ? h : mMaxHeight;
             if (h == oldh || mTextEditor == null || mTextEditor.getVisibility() == View.GONE) {
                 return;
@@ -10070,6 +11133,15 @@ public class ComposeMessageActivity extends Activity
                                 .getInstance(ComposeMessageActivity.this);
                         creator.updateStatusBarData();
                     }
+                    
+                    //[ramos] added by liting 20151118 for BUG0010335 & BUG0012440
+                    if(!isActionMode()){
+                        showRamosSubChoosePanel();
+                    }
+					//[ramos] begin by liting 20151216 for BUG0011442
+                    updateMenuPanel();
+					//[ramos] end liting
+                    //[ramos] end liting
             } else if (action != null
                     && (action.equals(TelephonyIntents.ACTION_DEFAULT_SMS_SUBSCRIPTION_CHANGED)
                         || action.equals(TelephonyIntents.ACTION_SUBINFO_CONTENT_CHANGE))) {
@@ -10741,4 +11813,1168 @@ public class ComposeMessageActivity extends Activity
         MmsLog.d(TAG, "onRequestPermissionsResult");
         mIpCompose.onIPRequestPermissionsResult(requestCode,permissions,grantResults);
     }
+
+    //[ramos] added by shuyong 20151124 for ComposeMessageActivity ActionMode
+    private ActionMode mActionMode;
+    public boolean isActionMode() {
+        return (mActionMode != null);
+    }
+	private ModeCallback mActionModeListener = new ModeCallback();
+
+	private class ModeCallback implements ActionMode.Callback,
+			View.OnClickListener {		
+		private View mActionBarView;
+		private View mRamosOptionMenu;
+		private TextView mForwardMenu;
+		private TextView mDeleteMenu;
+		private TextView mCopyMenu;	
+		private TextView mDetailMenu;
+		private TextView mMoreMenu;
+		private TextView mTVSelCount;
+		private TextView mTVCancel;
+		private TextView mTVSelectAll;
+		
+
+		@Override
+		public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+            mMsgListAdapter.clearList();
+            mActionMode = mode;
+            initView();
+            mOpMultiDeleteActivityExt = OpMessageUtils.getOpMessagePlugin()
+                    .getOpMultiDeleteActivityExt();
+            mOpMultiDeleteActivityExt.onCreate(ComposeMessageActivity.this);
+            showRamosOptionMenu();
+            //[ramos] begin by liting 20151225 for BUG0012028/Comments1
+            mIsSelectedAll = false;
+            if (mMsgListAdapter.getSelectedNumber() > 0) {
+                if (mMsgListAdapter.getSelectedNumber() == mMsgListAdapter.getCount()) {
+                    mIsSelectedAll = true;
+                }
+            }
+            //[ramos] end liting
+			updateUi();
+            mMsgListAdapter.mIsDeleteMode = true;
+			//[ramos] added by liting 20151124 for ComposeMessageActivity ActionMode
+            startMsgListQuery(MESSAGE_LIST_QUERY_TOKEN, 0);
+			//[ramos] end by liting 20151124 for ComposeMessageActivity ActionMode
+			//[ramos] begin by liting 20151216 for BUG0011442
+            mMenuPanel.setVisibility(View.GONE);
+			//[ramos] end liting
+			return true;
+		}
+
+		private void initView(){
+			if (mActionBarView == null) {
+				LayoutInflater inflate = LayoutInflater.from(ComposeMessageActivity.this);
+				mActionBarView = inflate.inflate(R.layout.ramos_compose_message_activity_list_multi_select_actionbar,null);
+				mTVSelCount = (TextView) mActionBarView.findViewById(R.id.selected_conv_count);
+				mTVCancel = (TextView) mActionBarView.findViewById(R.id.cancel);
+				mTVSelectAll = (TextView) mActionBarView.findViewById(R.id.selecte_all);
+				
+				mTVCancel.setOnClickListener(this);
+				mTVSelectAll.setOnClickListener(this);
+			}
+			mActionMode.setCustomView(mActionBarView);			
+		}
+		@Override
+		public boolean onActionItemClicked(ActionMode mode, MenuItem item) {		
+			return true;
+		}
+		@Override
+		public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+			return false;
+		}
+
+		@Override
+		public void onDestroyActionMode(ActionMode mode) {			
+			mActionMode = null;
+			hideRamosOptionMenul();
+            if (mMsgListAdapter != null) {
+			    mMsgListAdapter.mIsDeleteMode = false;
+			    mMsgListAdapter.clearList();
+            }
+			//[ramos] begin by liting 20151216 for BUG0011442
+            updateMenuPanel();
+			//[ramos] end liting
+		}
+
+		@Override
+		public void onClick(View v) {
+			switch (v.getId()) {
+			case R.id.cancel:
+				mActionMode.finish();
+				break;
+			case R.id.selecte_all:
+				if (mIsSelectedAll) {
+					clearSelect();
+				} else {
+					allSelect();
+				}
+				break;
+			}
+
+		}
+        //[ramos] begin liting 20160401 for BUG0014556
+        public void setItemChecked(int position, boolean checked, Cursor cursor) {        	
+            if (cursor == null) {
+                cursor = (Cursor) mMsgListView.getItemAtPosition(position);
+            } else {
+                cursor.moveToPosition(position);
+            }
+            long msgId = cursor.getLong(1);
+            mMsgListAdapter.changeSelectedStateLongClick(msgId);
+        }
+        //[ramos] end liting
+		private void allSelect() {
+           
+            if (!mIsSelectedAll) {
+                mIsSelectedAll = true;
+                mMsgListAdapter.setItemsValue(mIsSelectedAll, null);
+            }
+			updateUi();
+		}
+
+		private void clearSelect() {
+            if (mMsgListAdapter.getSelectedNumber() > 0) {
+                mIsSelectedAll = false;
+                mMsgListAdapter.setItemsValue(mIsSelectedAll, null);
+            }
+			updateUi();
+		}
+
+		public void updateUi() {
+			final int checkedCount = mMsgListAdapter.getSelectedNumber();
+			//[ramos] modified by liting 20151009 for BUG0008530
+			if (checkedCount == 0) {
+				mTVSelCount.setText(R.string.ramos_select);
+			} else {
+	            mTVSelCount.setText(getResources().getQuantityString(
+	                    R.plurals.message_view_selected_message_count, checkedCount, checkedCount));
+			}
+			//[ramos] end liting
+			updateActionItem();
+			updateOptionMenu();
+			mMsgListView.invalidateViews();
+		}
+
+		private void updateActionItem() {
+			mTVSelectAll.setText(mIsSelectedAll ? R.string.not_choose_all
+					: R.string.choose_all);
+		}
+
+		private void updateOptionMenu() {
+			if (null == mMoreMenu) {
+				return;
+			}
+			
+            if (mMsgListAdapter.getSelectedNumber() <=0 ) {
+                mForwardMenu.setEnabled(false);
+                mDeleteMenu.setEnabled(false);
+                mCopyMenu.setEnabled(false);  
+                mDetailMenu.setEnabled(false);
+                mMoreMenu.setEnabled(false);
+            } else {
+                //[ramos] begin by liting 20151218 for BUG0011906
+                if (mIsSmsEnabled) {
+                    mForwardMenu.setEnabled(true);
+                    mDeleteMenu.setEnabled(true);
+                }
+                //[ramos] end liting
+                mCopyMenu.setEnabled(true);  
+                
+                if (mMsgListAdapter.getSelectedNumber() > 1) {              
+                    mMoreMenu.setEnabled(false);    
+                    mDetailMenu.setEnabled(false);
+                } else if (mMsgListAdapter.getSelectedNumber() == 1) {
+                    mMoreMenu.setEnabled(true); 
+                    mDetailMenu.setEnabled(true);
+                }
+                
+                //if (smsBody.toString().isEmpty()) {
+                if (stringCopyToClipboard() == null || stringCopyToClipboard().isEmpty()) {
+                    mCopyMenu.setEnabled(false);  
+                } else {
+                    mCopyMenu.setEnabled(true);  
+                }
+
+            }
+
+			//[ramos] end liting
+		}
+
+		private void showRamosOptionMenu() {
+			hideBottomPanel();			
+			if(null == mRamosOptionMenu){
+				mRamosOptionMenu = findViewById(R.id.ramos_menu_list_compose);
+				mForwardMenu = (TextView) findViewById(R.id.menu_bar_forward);
+				mDeleteMenu = (TextView) findViewById(R.id.menu_bar_delete);
+				mCopyMenu = (TextView) findViewById(R.id.menu_bar_copy);
+				mMoreMenu = (TextView) findViewById(R.id.menu_bar_more);
+				mDetailMenu = (TextView) findViewById(R.id.menu_bar_details);
+				
+				mForwardMenu.setOnClickListener(mMenuOptionOnClickListener);
+				mDeleteMenu.setOnClickListener(mMenuOptionOnClickListener);
+				mCopyMenu.setOnClickListener(mMenuOptionOnClickListener);				
+				mMoreMenu.setOnClickListener(mMenuOptionOnClickListener);
+				mDetailMenu.setOnClickListener(mMenuOptionOnClickListener);
+			}
+			mRamosOptionMenu.setVisibility(View.VISIBLE);
+			//[ramos] added by liting 20151020 for Sub Choose
+			mRamosSubChoosePanel.setVisibility(View.GONE);
+			hideRamosPanel();
+			//[ramos] end liting 20151020
+		}
+
+		private void hideRamosOptionMenul() {
+			drawBottomPanel();
+			if (null != mRamosOptionMenu)
+				mRamosOptionMenu.setVisibility(View.GONE);
+			//[ramos] added by liting 20151020 for Sub Choose
+			//[ramos] modified by liting 20151024 for BUG0009322
+			if (null != mRamosSubChoosePanel && mSubCount == 2)
+			//[ramos] end liting BUG0009322	
+				mRamosSubChoosePanel.setVisibility(View.VISIBLE);
+			//[ramos] end liting 20151020
+		}
+
+		View.OnClickListener mMenuOptionOnClickListener = new View.OnClickListener() {
+			@Override
+			public void onClick(View item) {
+
+				switch (item.getId()) {
+    				case R.id.menu_bar_forward:
+    				    //[ramos] added by liting 20151124 for ComposeMessageActivity ActionMode
+                        mOpMultiDeleteActivityExt.onActionItemClicked(ComposeMessageActivity.this);
+                        //mMmsDeleteAndForwardPlugin.onMultiforwardItemSelected();
+                        //forwardSelectedMessage();
+    					//[ramos] end by liting 20151124 for ComposeMessageActivity ActionMode
+    					break;
+    				case R.id.menu_bar_delete:
+                        MultiDeleteMsgListener mMultiDeleteMsgListener = new MultiDeleteMsgListener();
+                        confirmDeleteDialog(mMultiDeleteMsgListener, false);
+    					break;
+    				case R.id.menu_bar_copy:
+    					copyToClipboard(stringCopyToClipboard());
+                        //[ramos] added by liting 20151121
+                        if(isActionMode()){
+                            mActionMode.finish();
+                        }
+                        //[ramos] end liting
+    					Toast.makeText(ComposeMessageActivity.this,	R.string.copy_message_text, Toast.LENGTH_SHORT).show();
+    					break;
+    				case R.id.menu_bar_more:
+					    //[ramos] added by liting 20151204 for BUG0010856
+                        mMessageItemRamos = getRamosMessageItem();
+                        if (null != mMessageItemRamos) {
+    					    showMoreOptionMenu();
+                        } else {
+                            MmsLog.i(TAG, "menu_bar_more mMessageItemRamos is NullPointerException");
+                        }
+						//[ramos] end liting
+    					break;
+    				case R.id.menu_bar_details:
+    					if (mMsgListAdapter.getSelectedNumber() == 1) {
+    						showMessageDetails(mMessageItemRamos);
+                            //[ramos] added by liting 20151121
+                            if(isActionMode()){
+                                mActionMode.finish();
+                            }
+                            //[ramos] end liting
+    					}
+    					break;
+    				case R.id.menu_bar_save_attachment:
+    					if (mMsgListAdapter.getSelectedNumber() == 1) {
+    						int resId = copyMedia(mMessageItemRamos.mMsgId) ? R.string.copy_to_sdcard_success
+    								: R.string.copy_to_sdcard_fail;
+                            //[ramos] added by liting 20151121
+                            if(isActionMode()){
+                                mActionMode.finish();
+                            }
+                            //[ramos] end liting
+    						Toast.makeText(ComposeMessageActivity.this, resId,
+    								Toast.LENGTH_SHORT).show();
+    					}
+    					break;
+    				//[ramos] modified by liting 20151020 for BUG0008330
+    				case R.id.menu_bar_save_as_sim1:
+    					mSelectedSubId = mSubInfoList.get(0).getSubscriptionId();
+    					mSaveMsgAfterSelectSubThread = new SaveMsgAfterSelectSubThread(mMessageItemRamos.mType, mMessageItemRamos.mMsgId);
+    					mSaveMsgAfterSelectSubThread.start();
+                        //[ramos] added by liting 20151121
+                        if(isActionMode()){
+                            mActionMode.finish();
+                        }
+                        //[ramos] end liting
+    					break;
+    				case R.id.menu_bar_save_as_sim2:
+    					//[ramos] modified by liting 20151026 for BUG0009433
+    					if (mSubCount < 2) {
+    						mSelectedSubId = mSubInfoList.get(0).getSubscriptionId();
+    					} else {
+    						mSelectedSubId = mSubInfoList.get(1).getSubscriptionId();
+    					}
+    					//[ramos] end liting BUG0009433
+    					mSaveMsgAfterSelectSubThread = new SaveMsgAfterSelectSubThread(mMessageItemRamos.mType, mMessageItemRamos.mMsgId);
+    					mSaveMsgAfterSelectSubThread.start();
+                        //[ramos] added by liting 20151121
+                        if(isActionMode()){
+                            mActionMode.finish();
+                        }
+                        //[ramos] end liting
+    					break;
+    				//[ramos] end liting BUG0008330	
+    				default:
+    					break;
+				}
+			}
+		};	
+		//[ramos] modified by liting 20151020 for BUG0008330
+		private final class SaveMsgAfterSelectSubThread extends Thread {
+			private String msgType = null;
+			private long msgId = 0;
+			public SaveMsgAfterSelectSubThread(String type, long id) {
+				msgType = type;
+				msgId = id;
+			}
+			public void run() {
+				Looper.prepare();
+				if (null != Looper.myLooper()) {
+					mSaveMsgHandler = new SaveMsgHandler(Looper.myLooper());
+				}
+				Message msg = mSaveMsgHandler.obtainMessage(MSG_SAVE_MESSAGE_TO_SUB_AFTER_SELECT_SUB);
+				//msg.arg1 = (int) msgId;
+				//msg.obj = msgType;
+				Intent intent = new Intent();
+				intent.putExtra("message_type", msgType);
+				intent.putExtra("message_id", msgId);
+				msg.obj = intent;
+				mSaveMsgHandler.sendMessage(msg); //single sub card
+				Looper.loop();
+			}
+		}
+		//[ramos] end liting
+	    private void showMoreOptionMenu(){        
+	    	RamosPopupMenuWindow MoreOtionMenu = new RamosPopupMenuWindow(ComposeMessageActivity.this, mMsgListView);
+	    	MoreOtionMenu.setOnPopupItemClickListener(new RamosPopupMenuWindow.OnPopupItemClickListener() {		
+	    		@Override
+	    		public boolean onPopupItemClick(int itemId) {
+	    			View v = findViewById(itemId);
+	    			if(null != v)
+	    				mMenuOptionOnClickListener.onClick(v);
+	    			return true;
+	    		}
+	    	});
+	    	MoreOtionMenu.setTitle(getString(R.string.menu_option));
+	    	MoreOtionMenu.init();
+			//[ramos] modified by liting 20151020 for BUG0008330
+			MoreOtionMenu.clear();
+	    	MoreOtionMenu.addItem(R.id.menu_bar_details,getString(R.string.menu_details), true);
+
+			boolean SimMode1 = false;
+			boolean SimMode2 = false;
+			int currentSimMode = Settings.System.getInt(ComposeMessageActivity.this.getContentResolver(),
+					Settings.System.MSIM_MODE_SETTING, -1);
+			if (mSubCount == 0) {
+				SimMode1 = false;
+				SimMode2 = false;
+			} else if (mSubCount == 1) {
+				if (mSubInfoList.get(0).getSimSlotIndex() == 0) {
+					SimMode1 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(0).getSimSlotIndex())) != 0;
+					SimMode2 = false;
+				} else if (mSubInfoList.get(0).getSimSlotIndex() == 1) {
+					SimMode1 = false;
+					SimMode2 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(0).getSimSlotIndex())) != 0;
+				}
+
+			} else {
+				SimMode1 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(0).getSimSlotIndex())) != 0;
+				SimMode2 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(1).getSimSlotIndex())) != 0;
+			}
+            //[ramos] begin by liting 20151218 for BUG0011906
+			if (mMessageItemRamos.isSms() && mIsSmsEnabled) {
+            //[ramos] end liting
+				if( SimMode1 && SimMode2) {
+					MoreOtionMenu.addItem(R.id.menu_bar_save_as_sim1, getString(R.string.menu_save_as_sim1), true);
+					MoreOtionMenu.addItem(R.id.menu_bar_save_as_sim2, getString(R.string.menu_save_as_sim2), true);
+				} else if (SimMode1) {
+					MoreOtionMenu.addItem(R.id.menu_bar_save_as_sim1, getString(R.string.menu_save_as_sim1), true);
+					MoreOtionMenu.addItem(R.id.menu_bar_save_as_sim2, getString(R.string.menu_save_as_sim2), false);
+				} else if (SimMode2) {
+					MoreOtionMenu.addItem(R.id.menu_bar_save_as_sim1, getString(R.string.menu_save_as_sim1), false);
+					MoreOtionMenu.addItem(R.id.menu_bar_save_as_sim2, getString(R.string.menu_save_as_sim2), true);
+				} else {
+					MoreOtionMenu.addItem(R.id.menu_bar_save_as_sim1, getString(R.string.menu_save_as_sim1), false);
+					MoreOtionMenu.addItem(R.id.menu_bar_save_as_sim2, getString(R.string.menu_save_as_sim2), false);
+				}
+			} else {
+				MoreOtionMenu.addItem(R.id.menu_bar_save_as_sim1,getString(R.string.menu_save_as_sim1), false);
+				MoreOtionMenu.addItem(R.id.menu_bar_save_as_sim2,getString(R.string.menu_save_as_sim2), false);
+			}
+			//[ramos] modified by liting 20151027 for BUG0009476
+			if (mMessageItemRamos.isMms() && haveSomethingToCopyToSDCard(mMessageItemRamos.mMsgId)) {
+			//[ramos] end liting	
+	    		MoreOtionMenu.addItem(R.id.menu_bar_save_attachment,getString(R.string.menu_save_attachment), true); 
+			} else {
+	    		MoreOtionMenu.addItem(R.id.menu_bar_save_attachment,getString(R.string.menu_save_attachment), false); 
+			}
+			//[ramos] end liting BUG0008330
+	        MoreOtionMenu.show(); 
+	    }
+		// [ramos] end
+		// delete messages
+	    private class MultiDeleteMsgListener implements OnClickListener {
+            public MultiDeleteMsgListener() {}
+	        public void onClick(DialogInterface dialog, final int whichButton) {	        
+	            new Thread(new Runnable() {
+	                public void run() {
+	                    Iterator iter = mMsgListAdapter.getItemList().entrySet().iterator();
+	                    Uri deleteSmsUri = null;
+	                    Uri deleteMmsUri = null;
+	                    String[] argsSms = new String[mMsgListAdapter.getSelectedNumber()];
+	                    String[] argsMms = new String[mMsgListAdapter.getSelectedNumber()];
+	                    int i = 0;
+	                    int j = 0;
+	                    while (iter.hasNext()) {	
+	                    	Map.Entry<Long, Boolean> entry = (Entry<Long, Boolean>) iter.next();
+	                        if (entry.getValue()) {
+	                            if (entry.getKey() > 0) {	                         
+	                                argsSms[i] = Long.toString(entry.getKey());	                            
+	                                deleteSmsUri = Sms.CONTENT_URI;
+	                                i++;
+	                            } else {	                             
+	                                argsMms[j] = Long.toString(-entry.getKey());	                           
+	                                deleteMmsUri = Mms.CONTENT_URI;
+	                                j++;
+	                            }
+	                        }
+	                    }      		
+	                
+	                    if (deleteSmsUri != null) {
+	                        mBackgroundQueryHandler.startDelete(DELETE_MESSAGE_TOKEN, null,
+	                            deleteSmsUri, "ForMultiDelete", argsSms);
+	                    }
+	                    if (deleteMmsUri != null) {	                        
+	                        mBackgroundQueryHandler.startDelete(DELETE_MESSAGE_TOKEN, null,
+	                            deleteMmsUri, "ForMultiDelete", argsMms);
+	                    }
+	                }
+	            }).start();
+	        }
+	    }
+	}
+
+	//[ramos] added by liting 20151124 for ComposeMessageActivity ActionMode
+    private void forwardMessage(ArrayList<Long> smsList) {
+        int maxLength = MmsConfig.getMaxTextLimit();
+            if (smsList.size() <= 0) {
+                noSmsForward();
+                return;
+            }
+
+            Collections.sort(smsList);
+            StringBuffer strbuf = new StringBuffer();
+            String tempbuf = null;
+            boolean reachLimitFlag = false;
+
+            for (int i = 0; i < smsList.size(); i++) {
+                long mMmsId = smsList.get(i);
+                //FT can't forward
+//                if (mMmsId > 0) {
+                    formatSmsBody(mMmsId, strbuf);
+                    if (i < smsList.size() - 1) {
+                        strbuf.append("\n");
+                    }
+//                } 
+                
+                if (strbuf.length() > maxLength) {
+                    reachLimitFlag = true;
+                    /// M: fix bug ALPS00444391, remove the last "\n" when > maxLength @{
+                    if (tempbuf != null && tempbuf.endsWith("\n")) {
+                        tempbuf = tempbuf.substring(0, tempbuf.length() - 1);
+                    }
+                    /// @}
+                    break;
+                } else {
+                    tempbuf = strbuf.toString();
+                }
+                MmsLog.d(TAG, "forwardMessage  strbuf.length()=" + strbuf.length() +
+                                "  tempbuf.length() = " + tempbuf.length());
+            }
+
+            if (reachLimitFlag) {
+                final String contentbuf = tempbuf;
+                runOnUiThread(new Runnable() {
+                    public void run() {
+                        showReachLimitDialog(contentbuf);
+                    }
+                });
+                return;
+            }
+            beginForward(tempbuf);
+    }
+    
+    public String stringCopyToClipboard() {
+        
+        IOpMessageListAdapterExt adapterExt = mMsgListAdapter.mOpMessageListAdapterExt;
+        Iterator iter = mMsgListAdapter.getItemList().entrySet().iterator();
+        ArrayList<Long> selectSms = new ArrayList<Long>();
+        ArrayList<Long> selectMms = new ArrayList<Long>();
+        Boolean mHasMms = false;
+        String tempbuf = null;
+        while (iter.hasNext()) {
+            Map.Entry<Long, Boolean> entry = (Entry<Long, Boolean>) iter.next();
+            if (entry.getValue()) {
+                if (entry.getKey() > 0) {
+                    MmsLog.i(TAG, "sms");
+                    selectSms.add(entry.getKey());
+                } else {
+                    MmsLog.i(TAG, "have  mms");
+                    selectMms.add(entry.getKey());
+                    mHasMms = true;
+                    selectSms.add(entry.getKey());
+                }
+            }
+        }
+        final ArrayList<Long> finalSelectSms = selectSms;
+        Collections.sort(finalSelectSms);
+        
+        int maxLength = MmsConfig.getMaxTextLimit();
+        StringBuffer strbuf = new StringBuffer();
+        for (int i = 0; i < finalSelectSms.size(); i++) {
+            long mMmsId = finalSelectSms.get(i);
+            
+            String smsbody = null;
+            int boxType = 0;
+            Contact contact = null;
+            if (mMmsId > 0) {
+                smsbody = adapterExt.getBody(mMmsId);
+                boxType = adapterExt.getBoxType(mMmsId);
+                contact = Contact.get(adapterExt.getAddress(mMmsId), false);
+            } else if (mMmsId < 0){
+            
+                MessageItem cacheitem = mMsgListAdapter.getCachedMessageItem("mms", -mMmsId, null);
+                if (cacheitem != null && cacheitem.mBody != null) {
+                    smsbody = cacheitem.mBody;
+                } else {
+                    continue;
+                }
+                boxType = adapterExt.getBoxType(-mMmsId);
+                contact = Contact.get(adapterExt.getAddress(-mMmsId), false);
+            }
+            
+            String number = Contact.formatNameAndNumber(contact.getName(), contact.getNumber(), "");
+            strbuf.append(mOpMultiDeleteActivityExt.forwardMessage(
+                            this, smsbody, number, boxType));
+    
+            if (i < finalSelectSms.size() - 1) {
+                strbuf.append("\n");
+            }
+        
+            if (strbuf.length() > maxLength) {
+                /// M: fix bug ALPS00444391, remove the last "\n" when > maxLength @{
+                if (tempbuf != null && tempbuf.endsWith("\n")) {
+                    tempbuf = tempbuf.substring(0, tempbuf.length() - 1);
+                }
+                /// @}
+                break;
+            } else {
+                tempbuf = strbuf.toString();
+            }
+            MmsLog.d(TAG, "isEmptyofCopyToClipboard  strbuf.length()=" + strbuf.length() +
+                            "  tempbuf.length() = " + tempbuf.length());
+        }
+        return tempbuf;
+    
+    }
+    //[ramos] added by liting 20151124 for ComposeMessageActivity ActionMode
+	
+	private void forwardSelectedMessage(HashSet<Integer> checkedPositions) {
+		StringBuilder smsBody = new StringBuilder();
+		MessageItem mmsItem = null;
+		for (Integer pos : checkedPositions) {
+			mMsgListAdapter.getItem(pos);
+			Cursor cursor = mMsgListAdapter.getCursor();
+			String type = cursor.getString(COLUMN_MSG_TYPE);
+			long msgId = cursor.getLong(COLUMN_ID);
+			final MessageItem msgItem = mMsgListAdapter.getCachedMessageItem(
+					type, msgId, cursor);
+			if (msgItem.mType.equals("sms")) {
+				smsBody.append(msgItem.mBody);
+				smsBody.append("\n");
+			}else if(msgItem.mType.equals("mms")){
+				mmsItem = msgItem;
+			}
+		}
+		//[ramos] added by liting 20151015 for BUG0008836
+		SpannableStringBuilder buf = new SpannableStringBuilder(smsBody.toString());
+		int before = buf.length();
+		if( before > 0 ){
+			buf.replace(before - 1, before, "");
+		}
+		//[ramos] end liting
+		if(null != mmsItem){
+			forwardMessage(mmsItem);
+		}else if (!smsBody.toString().isEmpty()) {
+			//[ramos] added by liting 20151015 for BUG0008836
+			//forwardSms(smsBody.toString());
+			forwardSms(buf.toString());
+			//[ramos] end liting
+		}
+	}
+
+	private void forwardSms(String smsBody) {
+		Intent intent = createIntent(ComposeMessageActivity.this, 0);
+		intent.putExtra(KEY_EXIT_ON_SENT, true);
+		intent.putExtra(KEY_FORWARDED_MESSAGE, true);
+		intent.putExtra("sms_body", smsBody);
+		intent.setClassName(ComposeMessageActivity.this,
+				"com.android.mms.ui.ForwardMessageActivity");
+		startActivity(intent);
+	}
+
+	private void deleteMessage(MessageItem msgItem) {
+		if (msgItem.isMms()) {
+			WorkingMessage.removeThumbnailsFromCache(msgItem.getSlideshow());
+
+			MmsApp.getApplication().getPduLoaderManager()
+					.removePdu(msgItem.mMessageUri);
+			// Delete the message *after* we've removed the thumbnails because
+			// we
+			// need the pdu and slideshow for removeThumbnailsFromCache to work.
+		}
+		Boolean deletingLastItem = false;
+		Cursor cursor = mMsgListAdapter != null ? mMsgListAdapter.getCursor()
+				: null;
+		if (cursor != null) {
+			cursor.moveToLast();
+			long msgId = cursor.getLong(COLUMN_ID);
+			deletingLastItem = msgId == msgItem.mMsgId;
+		}
+		mBackgroundQueryHandler.startDelete(DELETE_MESSAGE_TOKEN,
+				deletingLastItem, msgItem.mMessageUri, msgItem.mLocked ? null
+						: "locked=0", null);
+	}
+	
+
+	private RamosBottomPanel mRamosBottomPanel;
+
+	private void showRamosPanel() {
+		
+		//[ramos] modified by liting 20151030 for BUG0008602
+		mIsRamosPanelShow = true;
+		//[ramos] end liting
+		if(null == mRamosBottomPanel){
+			mRamosBottomPanel = (RamosBottomPanel) findViewById(R.id.ramos_bottom_panel);			
+		}
+		InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+		//[ramos] begin liting 20160301 for BUG0010512
+		if (this.getWindow() != null && this.getWindow().getCurrentFocus() != null) {
+		    //mInputMethodManager.hideSoftInputFromWindow(this.getWindow().getCurrentFocus().getWindowToken(), 0);
+		    imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);        
+		}
+		//[ramos] end liting
+		mRamosBottomPanel.setVisibility(View.VISIBLE);
+		
+		mTextEditor.setMaxHeight(mReferencedTextEditorFourLinesHeight * mCurrentMaxHeight / mReferencedMaxHeight);
+	}
+
+	private void hideRamosPanel() {
+		//[ramos] modified by liting 20151030 for BUG0008602
+		mIsRamosPanelShow = false;
+		//[ramos] end liting
+
+		if (null != mRamosBottomPanel)
+			mRamosBottomPanel.setVisibility(View.GONE);
+	}
+	private void showOrHideRamosPanel() {
+	 	if(null != mRamosBottomPanel && View.VISIBLE == mRamosBottomPanel.getVisibility()){
+    		hideRamosPanel();
+    	}else{
+    		showRamosPanel();
+    	}
+	}
+	
+//	public void appendContent(String str) {
+//		// TODO Auto-generated method stub
+//		if(null != mTextEditor)
+//			mTextEditor.append(str);
+//	}
+	public EditText getMessageEditor(){
+		return mTextEditor;
+	}	
+	public static final int MSG_FACE = 1;
+	public static final int MSG_ATTACHMENT = 2;
+	public static final int MSG_REPLY = 3;
+	@Override
+	public void handleMessage(Message msg) {	
+		switch(msg.what){
+		case MSG_FACE:
+			break;
+		case MSG_ATTACHMENT:
+			int itemIndex = (Integer)msg.obj;
+		    onItemClick(itemIndex, false);
+			break;
+		case MSG_REPLY:
+			if(null != mTextEditor){
+				//[ramos] modified by liting 20151026 for BUG0009458
+				insertText(mTextEditor, (String)msg.obj);
+				//mTextEditor.append((String)msg.obj);
+				//[ramos] end liting
+			}
+			break;
+		}		    
+	}
+	public void onItemClick(int itemIndex, boolean replace){
+		if(!replace) showOrHideRamosPanel();
+        //[ramos] liting 20160301 for BUG0013893
+        //addAttachment(int type, boolean append) ;Because  append = !replace; and the Parameter should be !replace
+        Log.d("litingnew","!mWorkingMessage.hasAttachedFiles() :  "+!replace);
+		switch(itemIndex){
+		case RamosAttachmentFragment.INDEX_CONTACT:
+			launchSinglePhonePicker();
+			break;
+		case RamosAttachmentFragment.INDEX_IMAGE:
+			addAttachment(AttachmentTypeSelectorAdapter.ADD_IMAGE, !replace);
+			break;
+		case RamosAttachmentFragment.INDEX_TAGE_PHOTO:
+			addAttachment(AttachmentTypeSelectorAdapter.TAKE_PICTURE, !replace);
+			break;
+		case RamosAttachmentFragment.INDEX_VIDEO:
+			addAttachment(AttachmentTypeSelectorAdapter.ADD_VIDEO, !replace);
+			break;
+		case RamosAttachmentFragment.INDEX_RECORD_VIDEO:
+			addAttachment(AttachmentTypeSelectorAdapter.RECORD_VIDEO, !replace);
+			break;
+		case RamosAttachmentFragment.INDEX_SOUND:
+			addAttachment(AttachmentTypeSelectorAdapter.ADD_SOUND, !replace);
+			break;
+		case RamosAttachmentFragment.INDEX_RECORD_SOUND:
+			addAttachment(AttachmentTypeSelectorAdapter.RECORD_SOUND, !replace);
+			break;
+		case RamosAttachmentFragment.INDEX_THEME:
+            showSubjectEditor(true);
+            mWorkingMessage.setSubject("", true);
+            //[ramos] added by liting 20151121 for BUG0010516
+            /// M: Code analyze 052, Show input keyboard.@{
+            mInputMethodManager.showSoftInput(getCurrentFocus(), InputMethodManager.SHOW_IMPLICIT);
+            /// @}
+            //[ramos] end liting
+            updateSendButtonState();
+            mSubjectTextEditor.requestFocus();
+			break;
+		case RamosAttachmentFragment.INDEX_TIMER:
+			//[ramos] added by liting 20151110 for BUG0008316
+			mTimerIntent = new Intent(ComposeMessageActivity.this, RamosTimerActivity.class);
+			startActivityForResult(mTimerIntent, REQUEST_CODE_TIMER);
+			//[ramos] end liting 
+			break;
+		case RamosAttachmentFragment.INDEX_SLIDESHOW:
+			addAttachment(AttachmentTypeSelectorAdapter.ADD_SLIDESHOW, !replace);
+			break;
+		}
+		
+	}
+	
+	private void launchSinglePhonePicker() {
+		//Intent intent = new Intent("com.android.contacts.action.MULTI_PICK",Contacts.CONTENT_URI);
+		Intent intent = new Intent(Intent.ACTION_PICK,Contacts.CONTENT_URI);
+		try {
+	    	startActivityForResult(intent, REQUEST_CODE_PICK_SINGLE);
+	    } catch (ActivityNotFoundException ex) {
+	        Toast.makeText(ComposeMessageActivity.this, R.string.contact_app_not_found, Toast.LENGTH_SHORT).show();
+	    }
+	}	
+    private void AddContactToEditor(Intent data) {
+    	if(null==mTextEditor) 
+    		return;
+    	
+        Uri uri = data.getData();
+        Cursor cursor = null;
+        try {
+        	String id = uri.getPathSegments().get(2);
+        	String[] prj = new String[]{Phone.DISPLAY_NAME, Phone.NUMBER};
+        	String selection = Phone.LOOKUP_KEY+"=?";
+        	String[] args = new String[]{id};
+            cursor = getContentResolver().query(Phone.CONTENT_URI, prj, selection, args, null);            
+            if(cursor.moveToNext()) {                
+                String name = cursor.getString(0);
+                String number = cursor.getString(1);
+                
+               	StringBuilder sb = new StringBuilder();
+				
+				//[ramos] modified by liting 20151117 for BUG0010251
+				int where = mTextEditor.getSelectionStart();
+				if (where == -1) {
+					sb.append(getString(R.string.name)).append(":");
+					sb.append(name);
+					sb.append("\n").append(getString(R.string.telephone)).append(":");
+					sb.append(number);
+					mTextEditor.append(sb.toString());
+				} else if(where == 0) {
+					sb.append(getString(R.string.name)).append(":");
+					sb.append(name);
+					sb.append("\n").append(getString(R.string.telephone)).append(":");
+					sb.append(number);
+					mTextEditor.getText().insert(where, sb.toString());
+				} else {
+					if(!TextUtils.isEmpty(mTextEditor.getText().toString())){
+						sb.append("\n");
+					}			
+					sb.append(getString(R.string.name)).append(":");
+					sb.append(name);
+					sb.append("\n").append(getString(R.string.telephone)).append(":");
+					sb.append(number);
+					mTextEditor.getText().insert(where, sb.toString());
+				}
+				//[ramos] end liting
+            }
+        } finally {
+        	if(null != cursor)
+        		cursor.close();
+        }
+	}
+    RamosPopupMenuWindow mReplaceAttachmentPopupWindow;
+    private void showAddAttachmentPopupWindow(boolean replace){
+    	mReplaceAttachmentPopupWindow = new RamosPopupMenuWindow(this, mMsgListView);
+    	mReplaceAttachmentPopupWindow.setOnPopupItemClickListener(mOnAttachmentClick);
+    	mReplaceAttachmentPopupWindow.setTitle(getString(R.string.menu_option));
+    	mReplaceAttachmentPopupWindow.init();
+
+    	mReplaceAttachmentPopupWindow.addItem(RamosAttachmentFragment.INDEX_IMAGE,getResources().getString(R.string.attach_image), true);
+    	mReplaceAttachmentPopupWindow.addItem(RamosAttachmentFragment.INDEX_TAGE_PHOTO,getResources().getString(R.string.attach_take_photo), true);
+    	mReplaceAttachmentPopupWindow.addItem(RamosAttachmentFragment.INDEX_VIDEO,getResources().getString(R.string.attach_video), true);
+    	mReplaceAttachmentPopupWindow.addItem(RamosAttachmentFragment.INDEX_RECORD_VIDEO,getResources().getString(R.string.attach_record_video), true);
+    	mReplaceAttachmentPopupWindow.addItem(RamosAttachmentFragment.INDEX_SOUND,getResources().getString(R.string.attach_sound), true);
+    	mReplaceAttachmentPopupWindow.addItem(RamosAttachmentFragment.INDEX_RECORD_SOUND,getResources().getString(R.string.attach_record_sound), true);
+    	mReplaceAttachmentPopupWindow.addItem(RamosAttachmentFragment.INDEX_SLIDESHOW,getResources().getString(R.string.attach_slideshow), true);
+    	
+    	mReplaceAttachmentPopupWindow.show();
+    }
+    RamosPopupMenuWindow.OnPopupItemClickListener mOnAttachmentClick = new RamosPopupMenuWindow.OnPopupItemClickListener() {		
+		@Override
+		public boolean onPopupItemClick(int itemId) {
+			onItemClick(itemId, true);
+			return true;
+		}
+	};
+	
+    private void hideBottomPanel() {
+        if (LOCAL_LOGV) {
+            Log.v(TAG, "CMA.hideBottomPanel");
+        }
+        mBottomPanel.setVisibility(View.GONE);
+    }
+    private void initShareButton() {
+        mShareButton = (ImageButton) findViewById(R.id.share_button);
+        mShareButton.setOnClickListener(new android.view.View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+            	showOrHideRamosPanel();
+            }
+        });       
+    }
+    //[ramos] end by shuyong 20151124 for ComposeMessageActivity ActionMode
+	//[ramos] begin by liting 20151216 for BUG0011442
+    private void initMenuPanel() {
+        mMenuPanel = (LinearLayout) findViewById(R.id.ramos_menu_panel);
+        mContactAdd = (TextView) findViewById(R.id.contact_add);
+        mContactView = (TextView) findViewById(R.id.contact_view);
+        mContactCall = (TextView) findViewById(R.id.contact_call);
+        mBlackListAdd = (TextView) findViewById(R.id.blacklist_add);
+        mBlackListCancel = (TextView) findViewById(R.id.blacklist_cancel);
+        mContactAdd.setOnClickListener(this);
+        mContactView.setOnClickListener(this);
+        mContactCall.setOnClickListener(this);
+        updateMenuPanel();
+    }
+
+    private void updateMenuPanel() {
+
+        MmsLog.d(TAG, "updateMenuPanel().isRecipientsEditorVisible() =  "+isRecipientsEditorVisible());
+        //if (getActionBar().isShowing() && mActionMode == null) {
+        if (!isRecipientsEditorVisible() && mActionMode == null) {
+            mMenuPanel.setVisibility(View.VISIBLE);
+            mContactCall.setVisibility(View.VISIBLE);
+            if (getRecipients().size() == 1) {
+                Contact contact = getRecipients().get(0);
+                contact.reload(true);
+                if (contact.existsInDatabase()) {
+                    mContactAdd.setVisibility(View.GONE);
+                    mContactView.setVisibility(View.VISIBLE);
+                } else if (MessageUtils.canAddToContacts(contact)) {
+                    mContactView.setVisibility(View.GONE);
+                    mContactAdd.setVisibility(View.VISIBLE);
+                }
+                
+                int currentSimMode = Settings.System.getInt(ComposeMessageActivity.this.getContentResolver(),
+                        Settings.System.MSIM_MODE_SETTING, -1);
+                boolean SimMode1 = false;
+                mContactCall.setEnabled(true);
+                if (mSubCount == 0) {
+                    mContactCall.setEnabled(false);
+                }else if (mSubCount == 1) {
+                    SimMode1 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(0).getSimSlotIndex())) != 0;
+                    if ( !SimMode1) {
+                        mContactCall.setEnabled(false);
+                    }
+                } else {
+                    SimMode1 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(0).getSimSlotIndex())) != 0;
+                    boolean SimMode2 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(1).getSimSlotIndex())) != 0;
+                    if( !SimMode1 && !SimMode2) {
+                        mContactCall.setEnabled(false);
+                    }
+                }
+                
+            } else if (getRecipients().size() > 1) {
+                mContactView.setVisibility(View.VISIBLE);
+                mContactAdd.setVisibility(View.GONE);
+                mContactCall.setVisibility(View.GONE);
+            } else {
+                MmsLog.d(TAG, "updateMenuPanel():getRecipients().size() < 1");
+                mMenuPanel.setVisibility(View.GONE);
+            }
+        }else {
+            mMenuPanel.setVisibility(View.GONE);
+        }
+        
+    }
+    
+    class ItemLongClickListener implements  ListView.OnItemLongClickListener {
+
+        public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+            if (view != null && view instanceof MessageListItem) {
+                if (mActionMode == null) {
+                    mActionMode = startActionMode(mActionModeListener);
+                    //[ramos] begin liting 20160401 for BUG0014556
+                    ((MessageListItem) view).mSelectedBox.setVisibility(View.VISIBLE);
+                    ((MessageListItem) view).onMessageListItemClick();
+                    //mActionModeListener.setItemChecked(position, true, null);
+                    //mActionModeListener.updateUi();
+                    //if (mMsgListAdapter != null) {
+                    //    mMsgListAdapter.notifyDataSetChanged();
+                    //}
+                    //[ramos] end liting
+                }
+            }
+            Log.d(TAG, "OnItemLongClickListener");
+            return true;
+        }
+    }
+
+    public void onForwardActionItemClick(){}
+
+    public void beginForward(String body){
+
+        Intent intent = createIntent(ComposeMessageActivity.this, 0);
+        intent.putExtra(FORWARD_MESSAGE, true);
+        intent.putExtra(ComposeMessageActivity.SMS_BODY, body);
+        
+        // ForwardMessageActivity is simply an alias in the manifest for ComposeMessageActivity.
+        // We have to make an alias because ComposeMessageActivity launch flags specify
+        // singleTop. When we forward a message, we want to start a separate ComposeMessageActivity.
+        // The only way to do that is to override the singleTop flag, which is impossible to do
+        // in code. By creating an alias to the activity, without the singleTop flag, we can
+        // launch a separate ComposeMessageActivity to edit the forward message.
+        intent.setClassName(this, "com.android.mms.ui.ForwardMessageActivity");
+        mOpMultiDeleteActivityExt.setExitCompose(intent, mMessageListItemHandler);
+        startActivity(intent);
+    }
+
+    public void formatSmsBody(long mmsId, StringBuffer strbuf){
+
+        IOpMessageListAdapterExt adapterExt = mMsgListAdapter.mOpMessageListAdapterExt;
+        String smsbody = adapterExt.getBody(mmsId);
+        if (mmsId < 0){
+            MessageItem cacheitem = mMsgListAdapter.getCachedMessageItem("mms", -mmsId, null);
+            if (cacheitem != null && cacheitem.mBody != null) {
+                smsbody = cacheitem.mBody;
+            } else {
+                smsbody = adapterExt.getBody(-mmsId);
+            }
+        }
+        if (smsbody == null) {
+            return;
+        }
+        MmsLog.d(TAG, "call forwardMessage !!!!!!!!!!!!");
+        
+        int boxType = adapterExt.getBoxType(mmsId);
+        Contact contact = Contact.get(adapterExt.getAddress(mmsId), false);
+        if (mmsId < 0){
+            boxType = adapterExt.getBoxType(-mmsId);
+            contact = Contact.get(adapterExt.getAddress(-mmsId), false);
+        }
+        String number = Contact.formatNameAndNumber(contact.getName(), contact.getNumber(), "");
+        strbuf.append(mOpMultiDeleteActivityExt.forwardMessage(
+                        this, smsbody, number, boxType));
+
+    }
+    public void noSmsForward(){}
+
+    public void showReachLimitDialog(final String mcontent){}
+
+    public void prepareToForwardMessageCallback(){
+        prepareToForwardMessage();
+    }
+
+    public void deleteMassTextInHost(String[] msgId){}
+
+    public void setDeleteRunningCount(int count){}
+
+    private int getSelectedCount() {
+        return mMsgListAdapter.getSelectedNumber();
+    }
+
+    public void prepareToForwardMessage() {
+        Boolean mHasMms = false;
+        Iterator iter = mMsgListAdapter.getItemList().entrySet().iterator();
+        ArrayList<Long> selectSms = new ArrayList<Long>();
+        ArrayList<Long> selectMms = new ArrayList<Long>();
+        while (iter.hasNext()) {
+            Map.Entry<Long, Boolean> entry = (Entry<Long, Boolean>) iter.next();
+            if (entry.getValue()) {
+                if (entry.getKey() > 0) {
+                    MmsLog.i(TAG, "sms");
+                    selectSms.add(entry.getKey());
+                } else {
+                    MmsLog.i(TAG, "have  mms");
+                    selectMms.add(entry.getKey());
+                    mHasMms = true;
+                    selectSms.add(entry.getKey());
+                }
+            }
+        }
+        
+        final ArrayList<Long> finalSelectSms = selectSms;
+        if (mHasMms) {
+            if (getSelectedCount() == 1) {
+                /// M :add for one mms forward. @{
+                long mMmsId = selectMms.get(0);
+                MmsLog.i(TAG, "enter forward one mms and mMmsId is " + mMmsId);
+                MessageItem cacheitem = mMsgListAdapter.getCachedMessageItem("mms", -mMmsId, null);
+                ///M:for ALPS01013894 , if get getCachedMessageItem return null, mean this item don't in cache
+                ///and if it is in itemlist, it mean this item is in listview@{
+                if (cacheitem == null) {
+                    MmsLog.i(TAG, "cacheitem is null ");
+                    iter = mMsgListAdapter.getItemList().entrySet().iterator();
+                    while (iter.hasNext()) {
+                        Map.Entry<Long, Boolean> entry = (Entry<Long, Boolean>) iter.next();
+                        MmsLog.i(TAG, "mMmsId " + mMmsId);
+                        MmsLog.i(TAG, "key " + entry.getKey());
+                        if (entry.getKey() == mMmsId) {
+                            Cursor cursor = mMsgListAdapter.getCursor();
+                            if (cursor != null) {
+                                MmsLog.i(TAG, "cursor is not null ");
+                            }
+                            if (cursor != null && cursor.moveToFirst()) {
+                                do {
+                                    MmsLog.i(TAG, "message_type " + cursor.getString(mMsgListAdapter.COLUMN_MSG_TYPE));
+                                    MmsLog.i(TAG, "mMmsId " + cursor.getLong(mMsgListAdapter.COLUMN_ID));
+                                    MmsLog.i(TAG, "subject " + cursor.getString(mMsgListAdapter.COLUMN_MMS_SUBJECT));
+                                    MmsLog.i(TAG, "mms type " + cursor.getInt(mMsgListAdapter.COLUMN_MMS_MESSAGE_TYPE));
+                                    //MmsLog.i(TAG,"sim_id "+ cursor.getInt(mMsgListAdapter.COLUMN_MMS_SIMID));
+                                    if (cursor.getInt(mMsgListAdapter.COLUMN_ID) == -mMmsId) {
+                                        String highlightString = getIntent().getStringExtra(
+                                                "highlight");
+                                        Pattern highlight = highlightString == null ? null
+                                                : Pattern.compile(
+                                                        "\\b" + Pattern.quote(highlightString),
+                                                        Pattern.CASE_INSENSITIVE);
+                                        try {
+                                            cacheitem = new MessageItem(
+                                           this,
+                                           0,
+                                           cursor.getInt(mMsgListAdapter.COLUMN_MMS_MESSAGE_TYPE),
+                                           cursor.getInt(mMsgListAdapter.COLUMN_MMS_SUBID),
+                                           0,
+                                           0,
+                                           0,
+                                           cursor.getLong(mMsgListAdapter.COLUMN_ID),
+                                           cursor.getString(mMsgListAdapter.COLUMN_MSG_TYPE),
+                                           cursor.getString(mMsgListAdapter.COLUMN_MMS_SUBJECT),
+                                           null, null, null, highlight, false, 0, 0,
+                                           cursor.getString(mMsgListAdapter.COLUMN_MMS_CC),
+                                           cursor.getString(mMsgListAdapter.COLUMN_MMS_CC_ENCODING),
+                                           cursor.getLong(mMsgListAdapter.COLUMN_MMS_DATE_SENT));
+                                        } catch (MmsException e) {
+                                            MmsLog.e(TAG, "MessageItem:", e);
+                                        }
+                                        break;
+                                    }
+                                } while (cursor.moveToNext());
+                            }
+                            break;
+                        }
+                    }
+                }
+                ///@}
+                /// M: fix bug ALPS641407
+                final MessageItem item = cacheitem;
+                if (WorkingMessage.sCreationMode == 0
+                        || !MessageUtils.isRestrictedType(ComposeMessageActivity.this, -mMmsId)) {
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            //forwardOneMms(item);
+                            long mMmsId = finalSelectSms.get(0);
+                            MmsLog.i(TAG, "enter forward one mms and mMmsId is " + mMmsId);
+                            MessageItem cacheitem = mMsgListAdapter.getCachedMessageItem("mms", -mMmsId, null);
+                            if (cacheitem != null) 
+                                forwardMessage(cacheitem);
+                        }
+                    });
+                } else if (WorkingMessage.sCreationMode == WorkingMessage.WARNING_TYPE) {
+                    new AlertDialog.Builder(ComposeMessageActivity.this)
+                            .setTitle(R.string.restricted_forward_title)
+                            .setIconAttribute(android.R.attr.alertDialogIcon)
+                            .setMessage(R.string.restricted_forward_message)
+                            .setPositiveButton(android.R.string.ok,
+                                    new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            int createMode = WorkingMessage.sCreationMode;
+                                            WorkingMessage.sCreationMode = 0;
+                                            runOnUiThread(new Runnable() {
+                                                public void run() {
+                                                    //forwardOneMms(item);
+                                                }
+                                            });
+                                            WorkingMessage.sCreationMode = createMode;
+                                        }
+                                    })
+                            .setNegativeButton(android.R.string.cancel, null).show();
+                }
+                /// @}
+            } else if (getSelectedCount() > 1) {
+                MmsLog.i(TAG, "enter have  mms");
+//                new AlertDialog.Builder(ComposeMessageActivity.this)
+//                .setTitle(R.string.discard_mms_title)
+//                .setIconAttribute(android.R.attr.alertDialogIcon)
+//                .setMessage(R.string.discard_mms_content)
+//                .setPositiveButton(R.string.dialog_continue, new DialogInterface.OnClickListener() {
+//                    public final void onClick(DialogInterface dialog, int which) {
+//                        new Thread(new Runnable() {
+//                            public void run() {
+                                forwardMessage(finalSelectSms);
+//                            }
+//                        }, "ForwardMessage").start();
+//                    }
+//                })
+//                .setNegativeButton(android.R.string.cancel, null)
+//                .show();
+            }
+        } else {
+            MmsLog.i(TAG, "enter have  sms");
+            new Thread(new Runnable() {
+                public void run() {
+                    forwardMessage(finalSelectSms);
+                }
+            }, "ForwardMessage").start();
+        }
+    }
+    
+    //[ramos] added by liting 20151110 for BUG0008316
+    private boolean isTimerEditorVisible() {
+        return (null != mTimerView)
+                    && (View.VISIBLE == mTimerView.getVisibility());
+    }
+	//[ramos] end liting
 }
+

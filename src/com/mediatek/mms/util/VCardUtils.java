@@ -101,7 +101,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-
+//[ramos] added by liting 20151024 for BUG0008328
+import java.io.FileOutputStream;
+//[ramos] end litingBUG0008328
 public class VCardUtils {
     private static final String TAG = "Mms/VCardUtils";
     public static final int PARSE_ALL = 0;
@@ -114,12 +116,28 @@ public class VCardUtils {
                 context.deleteFile(file);
             }
         }
+        //[ramos] added by liting 20151024 for BUG0008328
+        File dir = context.getExternalFilesDir(null);
+        final File tempVCard = new File(dir, attach.getSrc());
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        File[] files = dir.listFiles();
+        for (File file : files) {
+            if (file.getName().endsWith(".vcf")) {
+                file.delete();
+            }
+        }
+        //[ramos] end litingBUG0008328
         try {
             InputStream in = null;
             OutputStream out = null;
             try {
                 in = context.getContentResolver().openInputStream(attach.getUri());
-                out = context.openFileOutput(attach.getSrc(), Context.MODE_WORLD_READABLE);
+                //[ramos] modified by liting 20151024 for BUG0008328
+                out = new FileOutputStream(tempVCard);
+                //out = context.openFileOutput(attach.getSrc(), Context.MODE_WORLD_READABLE);
+                //[ramos] end litingBUG0008328
                 byte[] buf = new byte[8096];
                 int seg = 0;
                 while ((seg = in.read(buf)) != -1) {
@@ -138,7 +156,9 @@ public class VCardUtils {
         } catch (IOException e) {
             MmsLog.e(TAG, "importVCard, ioexception " + attach + ", exception ", e);
         }
-        final File tempVCard = context.getFileStreamPath(attach.getSrc());
+        //[ramos] deleted by liting 20151024 for BUG0008328 move to up
+        //final File tempVCard = context.getFileStreamPath(attach.getSrc());
+        //[ramos] end litingBUG0008328
         if (!tempVCard.exists() || tempVCard.length() <= 0) {
             MmsLog.e(TAG, "importVCard, file is not exists or empty " + tempVCard);
             return;

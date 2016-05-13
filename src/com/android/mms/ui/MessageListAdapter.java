@@ -410,6 +410,8 @@ public class MessageListAdapter extends MessageCursorAdapter
     @Override
     public View newView(Context context, Cursor cursor, ViewGroup parent) {
         // add for ipmessage
+        //[ramos] begin by liting 20151016 for Dual Card & SIM sms manager
+/*
         View view = mIpMessageListAdapter.onIpNewView(mInflater, cursor, parent);
         if (view == null) {
             switch (getItemViewType(cursor)) {
@@ -421,6 +423,30 @@ public class MessageListAdapter extends MessageCursorAdapter
                     view = mInflater.inflate(R.layout.message_list_item_send, parent, false);
             }
         }
+*/
+        String type = cursor.getString(mColumnsMap.mColumnMsgType);
+        long msgId = cursor.getLong(mColumnsMap.mColumnMsgId);
+        MessageItem msgItem = getCachedMessageItem(type, msgId, cursor);
+        View view = mIpMessageListAdapter.onIpNewView(mInflater, cursor, parent);
+        if (view == null) {
+            switch (getItemViewType(cursor)) {
+                case INCOMING_ITEM_TYPE:
+                    if(null != msgItem && msgItem.isSubMsg()) {		//shuyong for bug 0011587 fc error when send mms
+                    	view = mInflater.inflate(R.layout.ramos_message_list_item_recv_sub, parent, false);				
+                    } else {
+                    	view = mInflater.inflate(R.layout.ramos_message_list_item_recv, parent, false);
+                    }
+                    break;
+                case OUTGOING_ITEM_TYPE:
+                default:
+                    if(null != msgItem && msgItem.isSubMsg()) {		//shuyong for bug 0011587 fc error when send mms
+                    	view = mInflater.inflate(R.layout.ramos_message_list_item_send_sub, parent, false);				
+                    } else {
+                    	view = mInflater.inflate(R.layout.ramos_message_list_item_send, parent, false);
+                    }
+            }
+        }
+        //[ramos] end liting 20151016 for Dual Card & SIM sms manager
         return new MessageListItem(context, view);
     }
 
@@ -1005,10 +1031,35 @@ public class MessageListAdapter extends MessageCursorAdapter
             MmsLog.e(TAG, "mListItem is null");
             return;
         }
-        mListItem.put(listId, !mListItem.get(listId));
+        //[ramos] begin liting 20160418 for BUG0014556
+        //mListItem.put(listId, !mListItem.get(listId));
+        if (mListItem.get(listId) == null) {
+            mListItem.put(listId, true);
+        } else {
+            mListItem.put(listId, !mListItem.get(listId));
+        }
+        //[ramos] end liting
 
     }
 
+    //[ramos] begin liting 20160401 for BUG0014556
+    public void changeSelectedStateLongClick(long listId) {
+    
+        MmsLog.e(TAG, "listId =" + listId);
+        if (mListItem == null) {
+            MmsLog.e(TAG, "mListItem is null");
+            return;
+        }
+        
+        if (mListItem.get(listId) == null) {
+            mListItem.put(listId, true);
+        } else {
+            mListItem.put(listId, !mListItem.get(listId));
+        }
+    
+    }
+    //[ramos] end liting
+	
     public void changeSelectedState(String listId) {
         mSimMsgListItem.put(listId, !mSimMsgListItem.get(listId));
 

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright (C) 2013 Google Inc.
+-->
+
+<LinearLayout  xmlns:android="http://schemas.android.com/apk/res/android"
+   android:id="@+id/ramos_menu_list" 
+   android:layout_width="match_parent"
+   android:layout_height="58dip"
+   android:orientation="vertical" 
+   android:background="@color/tab_color"
+   android:layout_alignParentBottom="true"
+   android:gravity="center">
+   
+    <View 
+         android:id="@+id/bottom_line"
+         android:layout_width="match_parent"
+         android:layout_height="0.7dip"
+         android:background="@color/top_line"/>
+    
+	<RelativeLayout
+	   android:layout_width="match_parent"
+	   android:layout_height="58dip"
+	   android:gravity="center"
+	   android:background="@color/tab_color"> 
+      <TextView
+          android:id="@+id/menu_search"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_gravity="center_vertical"
+          android:layout_marginTop="7dip"
+          android:layout_marginLeft="34dip"
+          android:singleLine="true"
+          android:layout_alignParentLeft="true"
+          android:textColor="@color/ramos_menu_color"
+          android:drawablePadding="3dip"
+          android:drawableTop="@drawable/ramos_menu_search" 
+          android:text="@string/menu_search"
+          android:textSize="@dimen/ramos_menu_text" />
+      <TextView
+          android:id="@+id/menu_action_compose_new"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_gravity="center_vertical"
+          android:layout_marginTop="7dip"
+          android:layout_centerInParent="true"
+          android:singleLine="true"
+          android:textColor="@color/ramos_menu_color"
+          android:drawablePadding="3dip"
+          android:drawableTop="@drawable/ramos_menu_compose_new" 
+          android:text="@string/menu_write"
+          android:textSize="@dimen/ramos_menu_text" />
+      <TextView
+          android:id="@+id/menu_action_settings"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_gravity="center_vertical"
+          android:layout_marginRight="34dip"
+          android:layout_marginTop="7dip"
+          android:singleLine="true"
+          android:layout_alignParentRight="true"
+          android:textColor="@color/ramos_menu_color"
+          android:drawablePadding="3dip"
+          android:drawableTop="@drawable/ramos_menu_settings" 
+          android:text="@string/menu_preferences"
+          android:textSize="@dimen/ramos_menu_text" />
+      <TextView
+          android:id="@+id/menu_delete"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:gravity="center"
+          android:singleLine="true"
+          android:textColor="@color/ramos_menu_color"
+          android:drawablePadding="3dip"
+          android:drawableTop="@drawable/ramos_sms_btn_delete_selector" 
+          android:text="@string/delete_message"
+          android:textSize="@dimen/ramos_menu_text"
+          android:visibility="gone" />
+      </RelativeLayout>
+</LinearLayout>
+       
+

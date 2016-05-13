@@ -174,6 +174,10 @@ import android.telephony.SubscriptionManager;
 import android.telephony.SubscriptionInfo;
 
 import com.mediatek.internal.telephony.DefaultSmsSimSettings;
+//[ramos] added by liting 20151117 for BUG0009278 Dialog Sub Choose
+import android.widget.RelativeLayout;
+//[ramos] end liting
+
 /** M:
  * Dialog mode
  */
@@ -317,6 +321,7 @@ public class DialogModeActivity extends Activity implements
     private boolean mReachMax = true;
 
     private IIpDialogModeActivityExt mIpDialogModeActivity;
+    private ImageView mSubIcon;
 
     public DialogModeActivity() {
         mUris = new ArrayList<Uri>();
@@ -588,9 +593,20 @@ public class DialogModeActivity extends Activity implements
             MmsLog.d(TAG, "have init");
             return;
         }
+		//[ramos] modified by liting 20151016 for BUG0008782
+/*
         setContentView(R.layout.msg_dlg_activity);
+*/
+        setContentView(R.layout.ramos_msg_dlg_activity);
+		//[ramos] end liting
         mContentViewSet = true;
         updateSubInfoList();
+		//[ramos] added by liting 20151117 for BUG0009278 Dialog Sub Choose
+        mSubInfoList = SubscriptionManager.from(this).getActiveSubscriptionInfoList();
+		subscriptionManager = SubscriptionManager.from(this);
+        //[ramos] modified by liting 20151130 for BUG0010681
+		initRamosSubChoosePanel();
+		//[ramos] end liting 
         mLeftArrow = (ImageButton) findViewById(R.id.previous);
         mLeftArrow.setOnClickListener(this);
         mRightArrow = (ImageButton) findViewById(R.id.next);
@@ -609,6 +625,11 @@ public class DialogModeActivity extends Activity implements
         /// M: fix bug ALPS00439894, MTK MR1 new feature: Group Mms
         mGroupMmsSender = (TextView) findViewById(R.id.group_mms_sender);
         mSmsContentText = (TextView) findViewById(R.id.msg_content);
+		//[ramos] added by liting 20151116 for BUG0010210
+        if(null != mSmsContentText){
+        	mSmsContentText.setIsOEMWebUrl(true);
+        }
+		//[ramos] end shuyong
         if (tf != null) {
             mSmsContentText.setTypeface(tf);
         }
@@ -621,11 +642,21 @@ public class DialogModeActivity extends Activity implements
         simInfo.setVisibility(View.VISIBLE);
 
         mSubName = (TextView) findViewById(R.id.sub_name);
-        mSubName.setVisibility(View.VISIBLE);
+        //[ramos] begin liting 20160127
+        //mSubName.setVisibility(View.VISIBLE);
+        mSubName.setVisibility(View.GONE);
+		//[ramos] end liting
         if (tf != null) {
             mSubName.setTypeface(tf);
         }
+        //[ramos] begin liting 20160127
+        mSubIcon = (ImageView) findViewById(R.id.sub_icon);
+        mSubIcon.setVisibility(View.VISIBLE);
+        //[ramos] end liting
         mContactImage = (ImageView) findViewById(R.id.contact_img);
+		//[ramos] added by liting 20151016 for BUG0008782
+		mContactImage.setVisibility(View.GONE);
+		//[ramos] end liting
         sDefaultContactImage = getApplicationContext().getResources().getDrawable(
             R.drawable.ic_default_contact);
         mReplyEditor = (EditText) findViewById(R.id.embedded_reply_text_editor);
@@ -725,6 +756,10 @@ public class DialogModeActivity extends Activity implements
         // add for ipmessage
         String simCharSequence = mIpDialogModeActivity.onIpSetDialogView();
         MessageUtils.setSubIconAndLabel(getCurrentSubId(), simCharSequence, mSubName);
+        //[ramos] begin liting 20160328
+        //MessageUtils.setSubIconAndLabel(getCurrentSubId(), simCharSequence, mSubName);
+        MessageUtils.setSubIconAndLabel(getCurrentSubId(), simCharSequence, mSubName, mSubIcon);
+        //[ramos] end liting
         updateSendButtonState();
     }
 
@@ -1193,6 +1228,25 @@ public class DialogModeActivity extends Activity implements
         } else if (v == mRightArrow) {
             onSlideToNext();
         }
+		//[ramos] added by liting 20151117 for BUG0009278 Dialog Sub Choose
+        else if (v == mRamosSubSim1) {
+            //[ramos] modified by liting 20151202 for BUG0010578
+            if (mSubCount > 0) {
+                mSelectedSubId = mSubInfoList.get(0).getSubscriptionId();
+                subscriptionManager.setDefaultSmsSubId(mSelectedSubId);
+                showSim1OrSim2SendButton(mSelectedSubId);
+            }
+            //[ramos] end liting
+        } else if (v == mRamosSubSim2) {
+            //[ramos] modified by liting 20151202 for BUG0010578
+            if (mSubCount > 1) {
+                mSelectedSubId = mSubInfoList.get(1).getSubscriptionId();
+                subscriptionManager.setDefaultSmsSubId(mSelectedSubId);
+                showSim1OrSim2SendButton(mSelectedSubId);
+            }
+            //[ramos] end liting
+		}
+		//[ramos] end liting for Sub Choose
     }
 
     private void openThread(long threadId) {
@@ -1976,11 +2030,20 @@ public class DialogModeActivity extends Activity implements
             // View sendButton = showSmsOrMmsSendButton(mWorkingMessage.requiresMms());
             mSendButton.setEnabled(enable);
             mSendButton.setFocusable(enable);
+            //[ramos] begin liting 20160329
+/*
             if (enable) {
                 mSendButton.setImageResource(R.drawable.ic_send_ipmsg);
             } else {
                 mSendButton.setImageResource(R.drawable.ic_send_sms_unsend);
             }
+*/
+            if (enable) {
+                mSendButton.setImageResource(R.drawable.ramos_ic_send_ipmsg);
+            } else {
+                mSendButton.setImageResource(R.drawable.ramos_ic_send_sms_unsend);
+            }
+            //[ramos] end liting
         }
         // add for ipmessage
         mIpDialogModeActivity.onIpUpdateSendButtonState(mSendButton);
@@ -2317,6 +2380,9 @@ public class DialogModeActivity extends Activity implements
                 }
                 updateSubInfoList();
                 updateSendButtonState();
+                //[ramos] added by liting 20151118 for BUG0010335
+                showRamosSubChoosePanel();
+                //[ramos] end liting
             }
         }
     };
@@ -2416,4 +2482,125 @@ public class DialogModeActivity extends Activity implements
     public int opGetCurrentSubId() {
         return getCurrentSubId();
     }
+	
+	//[ramos] added by liting 20151117 for BUG0009278 Dialog Sub Choose
+    private View mSubView;
+	private View mRamosSubChoosePanel;
+	private TextView mRamosSubSimText1;
+	private TextView mRamosSubSimText2;
+	private LinearLayout mRamosSubSim1;
+	private LinearLayout mRamosSubSim2;
+    private static final int MODE_PHONE1_ONLY = 1;
+    private List<SubscriptionInfo> mSubInfoList;
+	private SubscriptionManager subscriptionManager;
+    //[ramos] modified by liting 20151130 for BUG0010681
+    private void initRamosSubChoosePanel() {
+        
+        mSubView = findViewById(R.id.sub_view);
+        mRamosSubChoosePanel = findViewById(R.id.ramos_sub_choose_panel);
+        mRamosSubSim1 = (LinearLayout) findViewById(R.id.sub_sim1);
+        mRamosSubSim1.setOnClickListener(this);
+        mRamosSubSim2 = (LinearLayout) findViewById(R.id.sub_sim2);
+        mRamosSubSim2.setOnClickListener(this);
+        mRamosSubSimText1 = (TextView) findViewById(R.id.sub_sim1_text);
+        mRamosSubSimText2 = (TextView) findViewById(R.id.sub_sim2_text);
+        RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) mRamosSubSim2.getLayoutParams();
+        params.setMargins(15, 0, 0, 0);
+        mRamosSubSim2.setLayoutParams(params);
+        mRamosSubChoosePanel.setBackgroundColor(0xfff6f9fb);
+    }
+    //[ramos] end liting
+	private void showRamosSubChoosePanel() {
+		if(null == mRamosSubChoosePanel){		//for bug 0011068
+			return;
+		}
+		else if (mSubCount <= 1) {
+			mRamosSubChoosePanel.setVisibility(View.GONE);
+            mSubView.setVisibility(View.GONE);
+		} else {
+			mRamosSubChoosePanel.setVisibility(View.VISIBLE);
+            mSubView.setVisibility(View.VISIBLE);
+			if (mSubInfoList.get(0).getDisplayName().toString() == null ) {
+				mRamosSubSimText1.setText(R.string.sub_choose_sim1);
+			} else {
+				mRamosSubSimText1.setText(mSubInfoList.get(0).getDisplayName().toString());
+			}
+			if (mSubInfoList.get(1).getDisplayName().toString() == null ) {
+				mRamosSubSimText2.setText(R.string.sub_choose_sim2);
+			} else {
+				mRamosSubSimText2.setText(mSubInfoList.get(1).getDisplayName().toString());
+			}
+	        SubscriptionInfo subInfo = SubscriptionManager.from(MmsApp.getApplication())
+                .getActiveSubscriptionInfo(getCurrentSubId());
+
+			if (subInfo.getSimSlotIndex() == 0) {
+				mSelectedSubId = mSubInfoList.get(0).getSubscriptionId();
+				subscriptionManager.setDefaultSmsSubId(mSelectedSubId);
+			} else if (subInfo.getSimSlotIndex() == 1) {
+				mSelectedSubId = mSubInfoList.get(1).getSubscriptionId();
+				subscriptionManager.setDefaultSmsSubId(mSelectedSubId);
+			} else {
+				mSelectedSubId = SubscriptionManager.getDefaultSmsSubId();
+			}
+				showSim1OrSim2SendButton(mSelectedSubId);
+		}
+	}
+	private void showSim1OrSim2SendButton(int SelectedSubId) {
+		if (SelectedSubId == mSubInfoList.get(0).getSubscriptionId()) {
+			mRamosSubSim1.setBackgroundResource(R.drawable.sms_bg_sim_sel);
+			mRamosSubSimText1.setTextColor(getResources().getColor(R.color.ramos_sub_sim_sel));
+			mRamosSubSimText1.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim1_sel), null, 
+				getResources().getDrawable(R.drawable.sms_icon_sel), null);
+			mRamosSubSim2.setBackgroundResource(R.drawable.sms_bg_sim_nor);
+			mRamosSubSimText2.setTextColor(getResources().getColor(R.color.ramos_sub_sim_nor));
+			mRamosSubSimText2.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim2_nor), null, null, null);
+		} else if (SelectedSubId == mSubInfoList.get(1).getSubscriptionId()) {
+			mRamosSubSim2.setBackgroundResource(R.drawable.sms_bg_sim_sel);
+			mRamosSubSimText2.setTextColor(getResources().getColor(R.color.ramos_sub_sim_sel));
+			mRamosSubSimText2.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim2_sel), null, 
+				getResources().getDrawable(R.drawable.sms_icon_sel), null);
+			mRamosSubSim1.setBackgroundResource(R.drawable.sms_bg_sim_nor);
+			mRamosSubSimText1.setTextColor(getResources().getColor(R.color.ramos_sub_sim_nor));
+			mRamosSubSimText1.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim1_nor), null, null, null);
+		} else {
+			mRamosSubSim1.setBackgroundResource(R.drawable.sms_bg_sim_nor);
+			mRamosSubSimText1.setTextColor(getResources().getColor(R.color.ramos_sub_sim_nor));
+			mRamosSubSimText1.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim1_nor), null,null, null);
+			mRamosSubSim2.setBackgroundResource(R.drawable.sms_bg_sim_nor);
+			mRamosSubSimText2.setTextColor(getResources().getColor(R.color.ramos_sub_sim_nor));
+			mRamosSubSimText2.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim2_nor), null, null, null);
+		}
+
+		int currentSimMode = Settings.System.getInt(this.getContentResolver(),
+				Settings.System.MSIM_MODE_SETTING, -1);
+		boolean SimMode1 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(0).getSimSlotIndex())) != 0;
+		boolean SimMode2 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(1).getSimSlotIndex())) != 0;
+		if( SimMode1 && SimMode2) {
+			mRamosSubSim1.setEnabled(true);
+			mRamosSubSim2.setEnabled(true);
+		} else if (SimMode1) {
+			mRamosSubSim1.setEnabled(true);
+			mRamosSubSim2.setEnabled(false);
+			mRamosSubSimText2.setTextColor(getResources().getColor(R.color.ramos_sub_sim_dis));
+			mRamosSubSimText2.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim2_dis), null, null, null);
+			mRamosSubSim2.setBackgroundResource(R.drawable.sms_bg_sim_dis);
+		} else if (SimMode2) {
+			mRamosSubSim1.setEnabled(false);
+			mRamosSubSim2.setEnabled(true);
+			mRamosSubSimText1.setTextColor(getResources().getColor(R.color.ramos_sub_sim_dis));
+			mRamosSubSimText1.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim1_dis), null, null, null);
+			mRamosSubSim1.setBackgroundResource(R.drawable.sms_bg_sim_dis);
+		} else {
+			mRamosSubSim1.setEnabled(false);
+			mRamosSubSim2.setEnabled(false);
+			mRamosSubSimText1.setTextColor(getResources().getColor(R.color.ramos_sub_sim_dis));
+			mRamosSubSimText2.setTextColor(getResources().getColor(R.color.ramos_sub_sim_dis));
+			mRamosSubSimText1.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim1_dis), null, null, null);
+			mRamosSubSimText2.setCompoundDrawablesWithIntrinsicBounds(getResources().getDrawable(R.drawable.sms_sim2_dis), null, null, null);
+			mRamosSubSim1.setBackgroundResource(R.drawable.sms_bg_sim_dis);
+			mRamosSubSim2.setBackgroundResource(R.drawable.sms_bg_sim_dis);
+		}
+	}
+
+	//[ramos] end liting 
 }

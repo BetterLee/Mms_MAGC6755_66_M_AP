@@ -307,6 +307,9 @@ public class WorkingMessage implements IWorkingMessageCallback {
 
     /// M: fix bug ALPS00513231, force update threadId @{
     private boolean mForceUpdateThreadId = false;
+	//[ramos] added by liting 20151110 for BUG0008316
+    private volatile boolean mTimerState;
+	//[ramos] end liting 
 
     public void setForceUpdateThreadId(boolean update) {
         mForceUpdateThreadId = update;
@@ -2280,6 +2283,11 @@ public class WorkingMessage implements IWorkingMessageCallback {
                     semiSepRecipients + ", threadId=" + threadId);
         }
         MessageSender sender = new SmsMessageSender(mActivity, dests, msgText, threadId, subId);
+		//[ramos] added by liting 20151110 for BUG0008316
+		//if (mTimerState) {
+        //    sender.setTimerMessage(mTimerState);
+		//}
+		//[ramos] end liting 
 
         try {
             sender.sendMessage(threadId);
@@ -2756,6 +2764,9 @@ public class WorkingMessage implements IWorkingMessageCallback {
         values.put(Sms.THREAD_ID, threadId);
         values.put(Sms.BODY, contents);
         values.put(Sms.TYPE, Sms.MESSAGE_TYPE_DRAFT);
+		//[ramos] added by liting 20151116 for BUG0010214
+        values.put(Sms.ADDRESS, conv.getRecipients().serialize());
+		//[ramos] end liting		
         SqliteWrapper.insert(mActivity, mContentResolver, Sms.CONTENT_URI, values);
         Log.d(TAG_DRAFT, "[updateDraftSmsMessage] mIsTurnToChooseAttach : " + mIsTurnToChooseAttach);
         if (!mIsTurnToChooseAttach) {
@@ -3246,4 +3257,10 @@ public class WorkingMessage implements IWorkingMessageCallback {
     public void setLengthRequiresMmsCallback(boolean mmsRequired, boolean notify) {
         setLengthRequiresMms(mmsRequired, notify);
     }
+    
+    //[ramos] added by liting 20151110 for BUG0008316
+    public void setTimerState(boolean TimerState) {
+        mTimerState = TimerState;
+    }
+    //[ramos] end liting 
 }

@@ -35,6 +35,10 @@ import android.widget.TextView;
 import com.android.mms.R;
 import com.android.mms.ui.MessageUtils;
 import com.mediatek.widget.AccountItemView;
+//[ramos]added by liting 20150929
+import android.widget.Switch;
+import android.provider.Settings;
+//[ramos]end liting
 
 public class SubSelectAdapter extends BaseAdapter {
     private LayoutInflater mInf;
@@ -67,7 +71,9 @@ public class SubSelectAdapter extends BaseAdapter {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        View view = mInf.inflate(R.layout.sub_select_item, null);
+        //[ramos] modified by liting 20150929
+        View view = mInf.inflate(R.layout.ramos_sub_select_item, null);
+        //[ramos] end liting
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
         // subView.setThemeType(SubscriptionView.LIGHT_THEME);
         SubscriptionInfo subRecord = mList.get(position);
@@ -78,7 +84,10 @@ public class SubSelectAdapter extends BaseAdapter {
                 .createIconBitmap(mContext)));
         setText(name, subRecord.getDisplayName().toString());
         setText(number, subRecord.getNumber());
-        CheckBox subCheckBox = (CheckBox) view.findViewById(R.id.subCheckBox);
+		//[ramos] modified by liting 20150929
+        //CheckBox subCheckBox = (CheckBox) view.findViewById(R.id.subCheckBox);
+        Switch subCheckBox = (Switch) view.findViewById(R.id.subCheckBox);
+		//[ramos] end liting
         if (SmsPreferenceActivity.SMS_MANAGE_SIM_MESSAGES.equals(mPreferenceKey)
                 || SmsPreferenceActivity.SMS_SERVICE_CENTER.equals(mPreferenceKey)
                 || SmsPreferenceActivity.SMS_SAVE_LOCATION.equals(mPreferenceKey)
@@ -100,8 +109,37 @@ public class SubSelectAdapter extends BaseAdapter {
             number.setEnabled(false);
         }
         /// @}
+		//[ramos] modified by liting 20151009 for BUG0008337
+		if (isEnabled(position)) {
+            view.setAlpha(1f);
+		} else {
+            view.setAlpha(0.2f);
+		}
+		//[ramos] end liting
         return view;
     }
+	
+	//[ramos] modified by liting 20151009 for BUG0008337
+	
+    private static final int MODE_PHONE1_ONLY = 1;
+	
+	@Override
+    public boolean isEnabled(int position) {
+    
+		int currentSimMode = Settings.System.getInt(mContext.getContentResolver(),
+				Settings.System.MSIM_MODE_SETTING, -1);
+
+        if (SimStateMonitor.getInstance().getSubCount() == 0) {
+            return false;
+        }
+		boolean radiosState = ((currentSimMode & (MODE_PHONE1_ONLY << SimStateMonitor.getInstance().getSubInfoList().get(position).getSimSlotIndex())) == 0) ?
+				false : true;
+		if (!MessageUtils.isSimMessageAccessable(mContext)) {
+			return false;
+		}
+		return radiosState;
+    }
+	//[ramos] end liting
 
     /**
      * get the related preference data by position to find whether

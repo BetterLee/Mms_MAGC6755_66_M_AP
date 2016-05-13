@@ -39,14 +39,44 @@ import android.telephony.SubscriptionManager;
 
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.MmsLog;
-
+//[ramos]added by liting 20150929
+import android.view.View;
+import android.widget.TextView;
+import android.widget.LinearLayout;
+import android.preference.SwitchPreference;
+//[ramos]end liting
+//[ramos] begin by liting 20160223 for dual Sim Ringtone 
+import com.mediatek.audioprofile.AudioProfileManager;
+import android.util.Log;
+import com.android.mms.ramos.ramosDefaultRingtonePreference;
+import com.android.mms.ramos.ramosDefaultRingtonePreference.OnRingtonePreferenceChange;
+import android.telephony.SubscriptionInfo;
+import android.os.Handler;
+import android.os.Message;
+import java.util.List;
+import android.os.AsyncTask;
+import android.database.sqlite.SQLiteException;
+import android.os.Looper;
+import android.provider.MediaStore;
+import android.database.Cursor;
+import android.content.ContentResolver;
+import android.provider.OpenableColumns;
+import android.preference.PreferenceCategory;
+import android.telephony.TelephonyManager;
+//[ramos]end liting
 
 /**
  * With this activity, users can set preferences for MMS and SMS and
  * can access and manipulate SMS messages stored on the SIM.
  */
+//[ramos] begin by liting 20160223 for dual Sim Ringtone 
+/*
 public class NotificationPreferenceActivity extends PreferenceActivity
         implements Preference.OnPreferenceChangeListener {
+*/
+public class NotificationPreferenceActivity extends PreferenceActivity
+        implements Preference.OnPreferenceChangeListener, OnRingtonePreferenceChange {
+//[ramos]end liting
     private static final String TAG = "NotificationPreferenceActivity";
 
     private static final boolean DEBUG = false;
@@ -76,18 +106,39 @@ public class NotificationPreferenceActivity extends PreferenceActivity
     // Menu entries
     private static final int MENU_RESTORE_DEFAULTS = 1;
 
-    private CheckBoxPreference mEnableNotificationsPref;
+	//[ramos] modified by liting 20150929 CheckBoxPreference -> SwitchPreference
+    private SwitchPreference mEnableNotificationsPref;
 
-    private CheckBoxPreference mVibratePref;
+    private SwitchPreference mVibratePref;
 
-    private CheckBoxPreference mPopupNotificationPref;
-
+    private SwitchPreference mPopupNotificationPref;
+	//[ramos] end liting
     private ListPreference mNotificaitonMute;
 
     private int mCurrentSimCount = 0;
 
     private RingtonePreference mRingtonePref;
 
+    //[ramos] begin by liting 20160223 for dual Sim Ringtone 
+    private ramosDefaultRingtonePreference mSIM1InSMSRingtone;
+
+    private ramosDefaultRingtonePreference mSIM2InSMSRingtone;
+
+    public static final String NOTIFICATION_RINGTONE_SIM1 = "pref_key_ringtone_sim1";
+
+    public static final String NOTIFICATION_RINGTONE_SIM2 = "pref_key_ringtone_sim2";
+
+    private AudioProfileManager mProfileManager;
+
+    private static final String mKey = "mtk_audioprofile_general";
+
+    private PreferenceCategory root;
+
+    private Context mContext;
+
+    private final H mHandler = new H();
+    //[ramos] end liting
+    
     @Override
     protected void onPause() {
         super.onPause();
@@ -110,6 +161,11 @@ public class NotificationPreferenceActivity extends PreferenceActivity
         setListPrefSummary();
         // for ALPS01836799, refresh ring tone summary.
         setRingtoneSummary(getMmsRingtone(this));
+        //[ramos] begin by liting 20160223 for dual Sim Ringtone 
+        if (MmsApp.isDualRingtone) {
+            updateRingtonePref();
+        }
+		//[ramos] end liting
     }
 
     @Override
@@ -119,6 +175,23 @@ public class NotificationPreferenceActivity extends PreferenceActivity
         ActionBar actionBar = getActionBar();
         actionBar.setTitle(getResources().getString(R.string.actionbar_notification_setting));
         actionBar.setDisplayHomeAsUpEnabled(true);
+		//[ramos]modified by liting 20150918
+		actionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
+		actionBar.setCustomView(R.layout.ramos_actionbar);
+        TextView actionbartitle=(TextView)findViewById(R.id.ramos_actionbar_title);
+        actionbartitle.setText(R.string.actionbar_notification_setting);
+        
+    	TextView returntextview=(TextView)findViewById(R.id.preference_return_textview);
+    	returntextview.setText(R.string.set);
+    	returntextview.setVisibility(View.VISIBLE);
+    	LinearLayout linear=(LinearLayout)findViewById(R.id.preference_actionbar_return);
+    	linear.setVisibility(View.VISIBLE);
+		linear.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    finish();
+                }
+            });
+		//[ramos]end liting
         setMessagePreferences();
     }
 
@@ -149,18 +222,273 @@ public class NotificationPreferenceActivity extends PreferenceActivity
 
     private void setMessagePreferences() {
         mCurrentSimCount = SubscriptionManager.from(this).getActiveSubscriptionInfoCount();
-        addPreferencesFromResource(R.xml.notificationpreferences);
+		//[ramos] modified by liting 20150929 
+        //addPreferencesFromResource(R.xml.notificationpreferences);
+        addPreferencesFromResource(R.xml.ramos_notificationpreferences);
+		//[ramos] end liting
         mNotificaitonMute = (ListPreference) findPreference(NOTIFICATION_MUTE);
         mNotificaitonMute.setOnPreferenceChangeListener(this);
-        mEnableNotificationsPref = (CheckBoxPreference) findPreference(NOTIFICATION_ENABLED);
-        mVibratePref = (CheckBoxPreference) findPreference(NOTIFICATION_VIBRATE);
-        mPopupNotificationPref = (CheckBoxPreference) findPreference(POPUP_NOTIFICATION);
+		//[ramos] modified by liting 20150929 CheckBoxPreference -> SwitchPreference
+        mEnableNotificationsPref = (SwitchPreference) findPreference(NOTIFICATION_ENABLED);
+        mVibratePref = (SwitchPreference) findPreference(NOTIFICATION_VIBRATE);
+        mPopupNotificationPref = (SwitchPreference) findPreference(POPUP_NOTIFICATION);
+		//[ramos] end liting
         mRingtonePref = (RingtonePreference) findPreference(NOTIFICATION_RINGTONE);
+		//[ramos] added by liting 20151028 for BUG0009460
+		mRingtonePref.setShowDefault(false);
+		//[ramos] end liting
         mRingtonePref.setOnPreferenceChangeListener(this);
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         String soundValue = sharedPreferences.getString(NOTIFICATION_RINGTONE, null);
         setRingtoneSummary(soundValue);
+        //[ramos] begin by liting 20160223 for dual Sim Ringtone 
+        mContext = this;
+		mSIM1InSMSRingtone = (ramosDefaultRingtonePreference) findPreference(NOTIFICATION_RINGTONE_SIM1);
+        mSIM2InSMSRingtone = (ramosDefaultRingtonePreference) findPreference(NOTIFICATION_RINGTONE_SIM2);
+
+        root =(PreferenceCategory) getPreferenceScreen().findPreference("pref_key_notification");
+        if (MmsApp.isDualRingtone) {
+            root.removePreference(mRingtonePref);
+            updateRingtonePref();
+        } else {
+			root.removePreference(mSIM1InSMSRingtone);
+			root.removePreference(mSIM2InSMSRingtone);
+		}
+		//[ramos] end liting
     }
+
+    
+    //[ramos] begin by liting 20160223 for dual Sim Ringtone 
+    private void updateRingtonePref() {
+
+        SubscriptionInfo sir0 = null;
+        SubscriptionInfo sir1 = null;
+        final TelephonyManager tm =
+            (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
+        final int numSlots = tm.getSimCount();
+
+        for (int i = 0; i < numSlots; ++i) {
+            if(null == sir0){
+                sir0 = findRecordBySlotId(mContext, i);
+            }else{
+                sir1 = findRecordBySlotId(mContext, i);
+                break;
+            }
+        }
+        int sub_sim1 = sir0==null?-1:sir0.getSubscriptionId();
+        int sub_sim2 = sir1==null?-1:sir1.getSubscriptionId();
+        
+        //int SlotId_SIM1 = sub_sim1!=-1 ? SubscriptionManager.getSlotId(sub_sim1):-1;
+        //int SlotId_SIM2 = sub_sim2!=-1 ? SubscriptionManager.getSlotId(sub_sim2):-1;
+        
+        Log.d("yu_shoud", "initRingtone: sub_sim1="+sub_sim1+"; sub_sim2="+sub_sim2);
+        //Log.d("yu_shoud", "initRingtone: SlotId_SIM1="+SlotId_SIM1+"; SlotId_SIM2="+SlotId_SIM2);
+        
+        
+        if((sir0 != null && sir1 != null) || (sir0 == null && sir1 == null)){
+            if(sub_sim1 == -1){
+                sub_sim1 = 1;
+            }
+            if(sub_sim2 == -1){
+                sub_sim2 = 2;
+            }
+
+    		mSIM1InSMSRingtone
+    				.setStreamType(ramosDefaultRingtonePreference.SMS_TYPE);
+    		mSIM1InSMSRingtone.setProfile(mKey);
+    		mSIM1InSMSRingtone
+    				.setRingtoneType(AudioProfileManager.TYPE_RECEIVED_SMS);
+    		mSIM1InSMSRingtone.setSimId(sub_sim1);
+    		mSIM1InSMSRingtone.setOnRingtonePreferenceChange(this);
+    		if (mSIM2InSMSRingtone != null) {
+        		mSIM2InSMSRingtone
+        				.setStreamType(ramosDefaultRingtonePreference.SMS_TYPE);
+        		mSIM2InSMSRingtone.setProfile(mKey);
+        		mSIM2InSMSRingtone
+        				.setRingtoneType(AudioProfileManager.TYPE_RECEIVED_SMS);
+        		mSIM2InSMSRingtone.setSimId(sub_sim2);
+        		mSIM2InSMSRingtone.setOnRingtonePreferenceChange(this);
+            }
+        }else{
+            int sub_id = sub_sim1==-1 ? sub_sim2:sub_sim1;
+            Log.d("yu_shoud", "initRingtone: sub_id="+sub_id);
+            if (mSIM2InSMSRingtone != null) {
+                root.removePreference(mSIM2InSMSRingtone);
+    			mSIM2InSMSRingtone = null;
+            }
+			mSIM1InSMSRingtone.setTitle(R.string.pref_title_notification_ringtone_ramos);
+    		mSIM1InSMSRingtone
+    				.setStreamType(ramosDefaultRingtonePreference.SMS_TYPE);
+    		mSIM1InSMSRingtone.setProfile(mKey);
+    		mSIM1InSMSRingtone
+    				.setRingtoneType(AudioProfileManager.TYPE_RECEIVED_SMS);
+    		mSIM1InSMSRingtone.setSimId(sub_id);
+    		mSIM1InSMSRingtone.setOnRingtonePreferenceChange(this);
+
+        }
+        
+        lookupRingtoneNames();
+    }
+    
+    public static SubscriptionInfo findRecordBySlotId(Context context, final int slotId) {
+        final List<SubscriptionInfo> subInfoList =
+                SubscriptionManager.from(context).getActiveSubscriptionInfoList();
+        if (subInfoList != null) {
+            final int subInfoLength = subInfoList.size();
+
+            for (int i = 0; i < subInfoLength; ++i) {
+                final SubscriptionInfo sir = subInfoList.get(i);
+                if (sir.getSimSlotIndex() == slotId) {
+                    //Right now we take the first subscription on a SIM.
+                    return sir;
+                }
+            }
+        }
+
+        return null;
+    }
+
+	@Override
+	public void onRingtoneChange(Uri ringtoneUri, int RingtoneType, long simId){
+		final CharSequence summary = ringtoneUri!=null ? 
+		updateRingtoneName(mContext, RingtoneType, ringtoneUri, simId):
+		mContext.getString(R.string.silent_ringtone);
+	
+	    //Log.d("yu_dafdsfd", "onRingtoneChange RingtoneType="+RingtoneType);
+	    //Log.d("yu_dafdsfd", "onRingtoneChange RingtoneType="+RingtoneType);
+		Log.d("litingnew", "onRingtoneChange summary="+summary);
+		if (summary != null) {
+			if(RingtoneType == RingtoneManager.TYPE_RECEIVED_SMS){
+                Log.d("litingnew","mSIM1InSMSRingtone :  "+mSIM1InSMSRingtone);
+                Log.d("litingnew","simId :  "+simId);
+                Log.d("litingnew","mSIM1InSMSRingtone.getSimId() :  "+mSIM1InSMSRingtone.getSimId());
+				if(mSIM1InSMSRingtone != null && simId == mSIM1InSMSRingtone.getSimId()){
+				    mHandler.obtainMessage(H.UPDATE_PHONE_SMSTONE_SIM1, summary).sendToTarget();
+				}else if(mSIM2InSMSRingtone != null && simId == mSIM2InSMSRingtone.getSimId()){
+					mHandler.obtainMessage(H.UPDATE_PHONE_SMSTONE_SIM2, summary).sendToTarget();
+				}
+			}
+		}else{
+			lookupRingtoneNames();
+		}
+	}
+
+	public void lookupRingtoneNames() {
+        Log.d("litingnew","lookupRingtoneNames  ");
+		 AsyncTask.execute(mLookupRingtoneNames);
+	}
+    
+	private final Runnable mLookupRingtoneNames = new Runnable() {
+		 @Override
+		 public void run() {
+             Log.d("litingnew","mSIM1InSMSRingtone :  "+mSIM1InSMSRingtone);
+			 if (mSIM1InSMSRingtone != null) {
+				 final CharSequence summary = updateRingtoneName(
+						 mContext, RingtoneManager.TYPE_RECEIVED_SMS, null, mSIM1InSMSRingtone.getSimId());
+                 Log.d("litingnew","mLookupRingtoneNames--summary:  "+summary);
+				 if (summary != null) {
+					 mHandler.obtainMessage(H.UPDATE_PHONE_SMSTONE_SIM1, summary).sendToTarget();
+				 }
+			 }
+			 if (mSIM2InSMSRingtone != null) {
+				 final CharSequence summary = updateRingtoneName(
+						 mContext, RingtoneManager.TYPE_RECEIVED_SMS, null, mSIM2InSMSRingtone.getSimId());
+				 if (summary != null) {
+					 mHandler.obtainMessage(H.UPDATE_PHONE_SMSTONE_SIM2, summary).sendToTarget();
+				 }
+			 }
+		 }
+	 };
+
+    private static CharSequence updateRingtoneName(Context context, int type, Uri ringtoneUri, long simId) {
+        if (context == null) {
+            Log.e(TAG, "Unable to update ringtone name, no context provided");
+            return null;
+        }
+    
+        if(ringtoneUri == null){
+            AudioProfileManager prleManager = (AudioProfileManager) context.getSystemService(Context.AUDIO_PROFILE_SERVICE);
+            ringtoneUri = prleManager.getRingtoneUri(mKey, type, simId);
+            //ringtoneUri = RingtoneManager.getActualDefaultRingtoneUri(context, type);
+            Log.d(TAG, "updateRingtoneName ringtoneUri="+ringtoneUri+"; type="+type);
+        }
+        
+        CharSequence summary = context.getString(R.string.silent_ringtone /*ringtone_unknown*/);
+        // Is it a silent ringtone?
+        if (ringtoneUri == null) {
+            //summary = context.getString(com.android.internal.R.string.ringtone_silent);
+        } else {
+            Cursor cursor = null;
+            try {
+                if (MediaStore.AUTHORITY.equals(ringtoneUri.getAuthority())) {
+                    // Fetch the ringtone title from the media provider
+                    cursor = context.getContentResolver().query(ringtoneUri,
+                            new String[] { MediaStore.Audio.Media.TITLE }, null, null, null);
+                } else if (ContentResolver.SCHEME_CONTENT.equals(ringtoneUri.getScheme())) {
+                    cursor = context.getContentResolver().query(ringtoneUri,
+                            new String[] { OpenableColumns.DISPLAY_NAME }, null, null, null);
+                }
+                if (cursor != null) {
+                    if (cursor.moveToFirst()) {
+                        summary = cursor.getString(0);
+                    }else{
+                        summary = context.getString(com.android.internal.R.string.ringtone_unknown);
+                    }
+                    
+                }else{
+                    summary = context.getString(com.android.internal.R.string.ringtone_unknown);
+                }
+            } catch (SQLiteException sqle) {
+                summary = context.getString(com.android.internal.R.string.ringtone_unknown);
+                // Unknown title for the ringtone
+            } catch (IllegalArgumentException iae) {
+                // Some other error retrieving the column from the provider
+                summary = context.getString(com.android.internal.R.string.ringtone_unknown);
+            } finally {
+                if (cursor != null) {
+                    cursor.close();
+                }
+            }
+        }   
+    
+        return summary;
+    }
+
+    private final class H extends Handler {
+         private static final int UPDATE_PHONE_RINGTONE_SIM1 = 1;
+         private static final int UPDATE_PHONE_RINGTONE_SIM2 = 2;
+         private static final int UPDATE_PHONE_SMSTONE_SIM1 = 3;
+         private static final int UPDATE_PHONE_SMSTONE_SIM2 = 4;
+    
+         private static final int UPDATE_NOTIFICATION_RINGTONE = 5;
+         private static final int STOP_SAMPLE = 6;
+         private static final int UPDATE_RINGER_ICON = 7;
+         private static final int RINGTONE_CHANGE = 8;
+         private static final int UPDATE_EFFECTS_SUPPRESSOR = 9;
+    
+         private H() {
+             super(Looper.getMainLooper());
+         }
+    
+         @Override
+         public void handleMessage(Message msg) {
+             switch (msg.what) {
+                 case UPDATE_PHONE_SMSTONE_SIM1: 
+                    
+                    Log.d("litingnew","handleMessage--UPDATE_PHONE_SMSTONE_SIM1:  "+msg.obj);
+                     if(mSIM1InSMSRingtone != null){
+                         mSIM1InSMSRingtone.setSummry((CharSequence) msg.obj+"");
+                     }  
+                     break;
+                 case UPDATE_PHONE_SMSTONE_SIM2: 
+                     if(mSIM2InSMSRingtone != null){
+                         mSIM2InSMSRingtone.setSummry((CharSequence) msg.obj+"");
+                     }   
+                     break;
+             }
+         }
+     }
+    //[ramos] end liting
 
     private void setRingtoneSummary(String soundValue) {
         MmsLog.d(TAG, "setRingtoneSummary soundValue " + soundValue);
@@ -206,7 +534,9 @@ public class NotificationPreferenceActivity extends PreferenceActivity
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         menu.clear();
-        menu.add(0, MENU_RESTORE_DEFAULTS, 0, R.string.restore_default);
+		//[ramos]added by liting 20150923
+        //menu.add(0, MENU_RESTORE_DEFAULTS, 0, R.string.restore_default);
+		//[ramos]end liting
         return true;
     }
 
@@ -227,7 +557,10 @@ public class NotificationPreferenceActivity extends PreferenceActivity
         editor.putString(NOTIFICATION_MUTE, "0");
         editor.putString(NOTIFICATION_RINGTONE, DEFAULT_RINGTONE);
         editor.putBoolean(NOTIFICATION_VIBRATE, true);
-        editor.putBoolean(POPUP_NOTIFICATION, true);
+		//[ramos] modified by liting 20151113 for modified the default value of notification true->false
+        //editor.putBoolean(POPUP_NOTIFICATION, true);
+        editor.putBoolean(POPUP_NOTIFICATION, false);
+		//[ramos] end liting
         editor.apply();
         setPreferenceScreen(null);
         setMessagePreferences();
@@ -300,7 +633,10 @@ public class NotificationPreferenceActivity extends PreferenceActivity
         }
         SharedPreferences prefs
                 = PreferenceManager.getDefaultSharedPreferences(MmsApp.getApplication());
-        boolean enable = prefs.getBoolean(NotificationPreferenceActivity.POPUP_NOTIFICATION, true);
+		//[ramos] modified by liting 20151113 for modified the default value of notification true->false
+        //boolean enable = prefs.getBoolean(NotificationPreferenceActivity.POPUP_NOTIFICATION, true);
+        boolean enable = prefs.getBoolean(NotificationPreferenceActivity.POPUP_NOTIFICATION, false);
+		//[ramos] end liting
         return enable;
     }
 

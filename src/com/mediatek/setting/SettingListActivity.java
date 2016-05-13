@@ -55,8 +55,14 @@ import com.android.mms.R;
 import com.android.mms.MmsConfig;
 import com.mediatek.ipmsg.util.IpMessageUtils;
 import com.mediatek.mms.ipmessage.IIpSettingListActivityExt;
-
+//[ramos]modified by liting 20150821
+import android.widget.LinearLayout;
+import android.view.View.OnClickListener;
+/*
 public class SettingListActivity extends ListActivity {
+*/
+public class SettingListActivity extends ListActivity implements OnClickListener{
+//[ramos] end liting
     private static final String TAG = "SettingListActivity";
 
     /// Move preference strings from Google file to MTK SettingListActivity. @{
@@ -81,9 +87,24 @@ public class SettingListActivity extends ListActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         ActionBar actionBar = getActionBar();
-        actionBar.setDisplayHomeAsUpEnabled(true);
-        actionBar.setTitle(getResources().getString(R.string.menu_preferences));
-        setContentView(R.layout.setting_list);
+		//[ramos]modified by liting 20150918
+        //actionBar.setDisplayHomeAsUpEnabled(true);
+        //actionBar.setTitle(getResources().getString(R.string.menu_preferences));
+        //setContentView(R.layout.setting_list);
+        setContentView(R.layout.ramos_setting_list);
+		actionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
+		actionBar.setCustomView(R.layout.ramos_actionbar);
+        TextView actionbartitle=(TextView)findViewById(R.id.ramos_actionbar_title);
+        actionbartitle.setText(R.string.set);
+        
+    	TextView returntextview=(TextView)findViewById(R.id.preference_return_textview);
+    	returntextview.setText(R.string.conversation_list_title);
+    	returntextview.setVisibility(View.VISIBLE);
+    	LinearLayout linear=(LinearLayout)findViewById(R.id.preference_actionbar_return);
+    	linear.setVisibility(View.VISIBLE);
+		linear.setOnClickListener(this);
+		//[ramos]end liting
+
         /// KK migration, for default MMS function. @{
         LayoutInflater inflater = (LayoutInflater) this
                 .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -133,10 +154,14 @@ public class SettingListActivity extends ListActivity {
         };
         // add for ipmessage
         settingList = mIpSettingListActivity.setIpAdapter(settingList);
-
+        //[ramos] modified by liting 20150930
+/*
         setListAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1,
                 settingList));
-
+*/
+        setListAdapter(new ArrayAdapter<String>(this, R.layout.ramos_simple_list_item_1,
+                settingList));
+        //[ramos] end liting
     }
 
     private final Handler mUpdateViewStateHandler = new Handler() {
@@ -155,6 +180,9 @@ public class SettingListActivity extends ListActivity {
                     mSetDeafultMmsTile.setText(R.string.pref_title_sms_disabled);
                     mSetDeafultMmsSummary.setText(R.string.pref_summary_sms_disabled);
                 }
+                //[ramos] begin liting 
+                mSetDeafultMmsTile.setTextSize(15);
+                //[ramos] end liting
                 for (int i = 1; i <= lastItemPosition; i++) {
                     if (getListView().getChildAt(i) != null) {
                         getListView().getChildAt(i).setEnabled(mIsSmsEnabled);
@@ -212,7 +240,13 @@ public class SettingListActivity extends ListActivity {
         Log.d(TAG, "setDefaultMms mIsSmsEnabled: " + mIsSmsEnabled);
         Intent intent = new Intent();
         if (mIsSmsEnabled) {
+			//[ramos] modified by liting 20151020 for BUG0009109
+/*
             intent.setAction("android.provider.Telephony.ACTION_CHANGE_DEFAULT");
+*/
+            intent.setAction("android.settings.APP_DEFAULT_SETTINGS");
+            intent.setPackage("com.android.settings");
+			//[ramos] end liting BUG0009109
         } else {
             intent.setAction("android.provider.Telephony.ACTION_CHANGE_DEFAULT");
             intent.setPackage("com.android.settings");
@@ -234,4 +268,13 @@ public class SettingListActivity extends ListActivity {
         }
         return false;
     }
+
+	//[ramos]added by liting 20150821	
+	@Override
+	public void onClick(View arg0) {
+		finish();
+		
+	}
+	//[ramos]end liting
+
 }

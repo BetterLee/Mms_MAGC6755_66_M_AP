@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="@null">
+    
+    
+    <RelativeLayout 
+        android:id="@+id/search_bar"
+	    android:layout_width="match_parent"
+	    android:layout_height="wrap_content"
+	    android:orientation="vertical" 
+	    android:background="@color/white"
+	    android:layout_alignParentTop="true">
+    
+        <Button
+            android:id="@+id/btn_cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="30dip"
+            android:minWidth="60dp"
+            android:layout_marginRight = "0dp"
+            android:layout_alignParentRight="true"
+            android:textColor="@color/menu_sel_color"
+            android:layout_centerVertical="true"
+            android:textSize="15sp"
+            android:text="@string/string_btn_cancel"
+            android:background="@null"/>
+    	
+	    <LinearLayout 
+		    android:layout_width="match_parent"
+		    android:layout_height="wrap_content"
+		    android:orientation="vertical" 
+		    android:background="@drawable/ramos_mms_bg_search"
+		    android:gravity="center"
+		    android:layout_toLeftOf="@+id/btn_cancel"
+		    android:layout_marginTop="5dip"
+		    android:layout_marginBottom="5dip"
+		    android:layout_marginLeft="16dip">
+
+		    <EditText
+		        android:id="@+id/key_edit"
+		        android:layout_width="fill_parent"
+		        android:layout_height="34dp"
+		        android:hint=""
+		        android:maxLength="50"
+		        android:singleLine="true"
+		        android:textSize="14dp"
+		        android:imeOptions="actionSearch"
+		        android:background="@null"
+		        android:layout_centerVertical="true"
+		        android:textColor="@color/color_tag"
+		        android:drawableLeft="@drawable/ramos_sms_btn_search_nor"
+		        android:textColorHint="@color/color_hint"
+		        android:drawablePadding="15dip" />
+
+        </LinearLayout>
+    </RelativeLayout>
+    
+    <ListView
+        android:id="@+id/listview"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent" 
+        android:background="@color/ramos_listview_background"
+        android:fillViewport="true" 
+        android:layout_below="@+id/search_bar"
+        android:divider="@drawable/ramos_color_line"/>
+        
+    <TextView
+        android:id="@+id/empty_tip" 
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:textColor="#969696"
+        android:textSize="24sp"
+        android:gravity="center"
+        android:layout_centerInParent="true"
+        android:text="@string/string_not_match" 
+        android:visibility="gone"
+        android:background="@null"/>
+
+</RelativeLayout>

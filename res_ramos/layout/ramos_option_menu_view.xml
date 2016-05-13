@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright (C) 2013 Google Inc.
+-->
+
+<LinearLayout  xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="58dip"
+    android:orientation="vertical" 
+    android:background="@color/tab_color"
+    android:layout_alignParentBottom="true"
+    android:gravity="center"
+    android:visibility="gone">
+       
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="58dip"
+        android:orientation="horizontal" 
+        android:background="@color/tab_color"
+        android:gravity="center"> 
+        <TextView
+            android:id="@+id/menu_bar_forward"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:singleLine="true"
+            android:textAppearance="?android:textAppearanceMedium"
+            android:textColor="@color/ramos_menu_color"
+            android:drawablePadding="3dip"
+            android:drawableTop="@drawable/ramos_sms_btn_share_selector" 
+            android:text="@string/menu_forward"
+            android:textSize="@dimen/ramos_menu_text" />
+        <TextView
+            android:id="@+id/menu_bar_delete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:singleLine="true"
+            android:textAppearance="?android:textAppearanceMedium"
+            android:textColor="@color/ramos_menu_color"
+            android:drawablePadding="3dip"
+            android:drawableTop="@drawable/ramos_sms_btn_delete_selector" 
+            android:text="@string/delete_message"
+            android:textSize="@dimen/ramos_menu_text" />
+        <TextView
+            android:id="@+id/menu_bar_copy"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:singleLine="true"
+            android:textAppearance="?android:textAppearanceMedium"
+            android:textColor="@color/ramos_menu_color"
+            android:drawablePadding="3dip"
+            android:drawableTop="@drawable/ramos_sms_btn_copy_selector" 
+            android:text="@string/menu_copy_message"
+            android:textSize="@dimen/ramos_menu_text" />
+        <TextView
+            android:id="@+id/menu_bar_more"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:singleLine="true"
+            android:textAppearance="?android:textAppearanceMedium"
+            android:textColor="@color/ramos_menu_color"
+            android:drawablePadding="3dip"
+            android:drawableTop="@drawable/ramos_sms_btn_more_selector" 
+            android:text="@string/menu_more"
+            android:textSize="@dimen/ramos_menu_text" />
+        <!-- just use the ids -->       
+        <TextView
+            android:id="@+id/menu_bar_details"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"   
+            android:text="@string/menu_details"
+            android:visibility="gone"/>
+        <TextView
+            android:id="@+id/menu_bar_save_as_sim1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"           
+            android:text="@string/menu_save_as_sim1"
+            android:visibility="gone"/>
+        <TextView
+            android:id="@+id/menu_bar_save_as_sim2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"           
+            android:text="@string/menu_save_as_sim1"
+            android:visibility="gone"/>
+        <TextView
+            android:id="@+id/menu_bar_save_attachment"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"           
+            android:text="@string/menu_save_attachment"
+            android:visibility="gone"/>     
+        <!-- [ramos] added by liting 20151030 for BUG0009298 -->
+        <TextView
+            android:id="@+id/menu_call_recipient"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"   
+            android:text="@string/menu_call"
+            android:visibility="gone"/>
+        <TextView
+            android:id="@+id/menu_call_recipient_sim1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"           
+            android:text="@string/menu_call_sim1"
+            android:visibility="gone"/>
+        <TextView
+            android:id="@+id/menu_call_recipient_sim2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"           
+            android:text="@string/menu_call_sim2"
+            android:visibility="gone"/>
+        <TextView
+            android:id="@+id/menu_show_contact"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"           
+            android:text="@string/menu_view_contact"
+            android:visibility="gone"/>           
+        <TextView
+            android:id="@+id/menu_create_contact"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"           
+            android:text="@string/menu_add_to_contacts"
+            android:visibility="gone"/>
+        <TextView
+            android:id="@+id/menu_add_address_to_new_contact"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"           
+            android:text="@string/menu_new_contact"
+            android:visibility="gone"/>
+        <TextView
+            android:id="@+id/menu_entry_edit_mode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"           
+            android:text="@string/edit"
+            android:visibility="gone"/>
+        <!-- [ramos] end by liting 20151030 for BUG0009298 -->
+    </LinearLayout>
+</LinearLayout>
+       
+

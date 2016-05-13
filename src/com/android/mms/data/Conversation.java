@@ -131,6 +131,9 @@ public class Conversation implements IConversationCallback {
     private boolean mHasError;          // True if any message is in an error state.
     private boolean mIsChecked;         // True if user has selected the conversation for a
                                         // multi-operation such as delete.
+    //[ramos]added by liting 20151022 for BUG0008282
+    private int mConvSubId;
+    //[ramos]end liting
 
     private static ContentValues sReadContentValues;
     private static boolean sLoadingThreads;
@@ -1162,6 +1165,9 @@ public class Conversation implements IConversationCallback {
             conv.mThreadId = c.getLong(ID);
             conv.mDate = c.getLong(DATE);
             conv.mMessageCount = c.getInt(MESSAGE_COUNT);
+			//[ramos]added by liting 20151022 for BUG0008282
+			conv.mConvSubId = ConvSubIdCallBack(context,conv.mThreadId);	
+			//[ramos]end liting
 
             /// M: google jb.mr1 patch
             // Replace the snippet with a default value if it's empty.
@@ -1201,6 +1207,37 @@ public class Conversation implements IConversationCallback {
             Log.d(TAG, "fillFromCursor: conv=" + conv + ", recipientIds=" + recipientIds);
         }
     }
+	//[ramos]added by liting 20151022 for BUG0008282
+	public static int ConvSubIdCallBack(Context context, long threadId) {
+		ContentResolver resolver = context.getContentResolver();	
+
+		String uriStr = "content://mms-sms/simid_list_ramos";
+
+		Uri uri = ContentUris.withAppendedId(Uri.parse(uriStr), threadId);	
+		String[] prj = {"sub_id"};
+		Cursor cursor = null;
+		int subId = -1;
+		try {
+			cursor = resolver.query(uri, prj,null,null,null);  
+			if(null != cursor && cursor.moveToFirst()){
+				subId = cursor.getInt(0);
+			}	
+		} finally {
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+		return subId;	
+
+	}
+
+	public synchronized int getConvSubId() {
+		return mConvSubId;
+	}
+	
+
+	//[ramos]end liting
+
 
     /**
      * Private cache for the use of the various forms of Conversation.get.

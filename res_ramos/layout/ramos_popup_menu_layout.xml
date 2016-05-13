@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        >
+        
+	<LinearLayout 
+	    android:id="@+id/menu_layout"
+	    android:layout_width="match_parent"
+	    android:layout_height="wrap_content"
+	    android:background="#f8f8f8"
+	    android:gravity="center_vertical"
+	    android:orientation="vertical"  
+	    android:layout_alignParentBottom="true">
+	
+		<TextView
+	      	android:id="@+id/title"
+	        android:layout_width="match_parent"
+	        android:layout_height="58dip"
+	        android:gravity="center"
+	        android:textColor="@color/black"
+	        android:background="@color/white"
+	        android:textSize="16sp" />
+		
+        <View
+	        android:layout_width="match_parent"
+	        android:layout_height="0.5dip"
+	        android:background="@drawable/ramos_color_line" />
+	
+		<ListView android:id="@+id/list"
+	        android:layout_width="match_parent"
+	        android:layout_height="match_parent"
+	        android:background="@android:color/white"
+	        android:cacheColorHint="@android:color/white"
+	        android:fadingEdgeLength="16dip"
+	        android:divider="@null"/>
+	                
+	
+	</LinearLayout>
+	
+	<TextView
+      	android:id="@+id/top_null"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:textColor="@color/black"
+        android:background="@null"
+        android:textSize="16sp" 
+        android:layout_above="@id/menu_layout"/>
+</RelativeLayout>

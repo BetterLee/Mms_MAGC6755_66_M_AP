@@ -160,12 +160,20 @@ import com.mediatek.mms.callback.IConversationListHost;
 import com.mediatek.mms.callback.IConversationListCallback;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.util.StatusBarSelectorReceiver;
+//[ramos]added by liting 20150918
+import android.view.Display;
+import android.view.WindowManager;
+import android.view.WindowManager.LayoutParams;
+import com.android.mms.ramos.RamosSearchMms;
+//[ramos]end liting
 /**
  * This activity provides a list view of existing conversations.
  */
+//[ramos]added by liting 20150918 
 public class ConversationList extends ListActivity implements DraftCache.OnDraftChangedListener,
         /// M:add interface
-        OnSubInforChangedListener, IConversationListHost {
+        OnSubInforChangedListener, IConversationListHost, android.view.View.OnClickListener  {
+//[ramos]end liting 
     private static final String TAG = "ConversationList";
     private static final boolean DEBUG = false;
     private static final boolean LOCAL_LOGV = DEBUG;
@@ -292,6 +300,22 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private boolean isUserHasPerUsingMms = true;
 
     private StatusBarSelectorReceiver mStatusBarSelectorReceiver;
+
+	//[Ramos]added by liting 20150918
+    private TextView mMenu_search;
+    private TextView mMenu_action_compose_new;
+    private TextView mMenu_action_settings;
+    private TextView mMenu_delete;
+	private TextView mMenu_select;
+	private TextView mCancel;
+	private TextView mMultChoiceEdit;
+    //[Ramos]end liting
+    //[ramos] begin liting 20160411 for BUG0014757 and refer to repository of mtk6753
+    private float mFontScale;
+    public static final float MAX_FONT_SCALE = 1.1f;
+    //[ramos] end liting
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -315,15 +339,33 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             this, this,Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         /// @}
 
-        setContentView(R.layout.conversation_list_screen);
+        //[Ramos]added by liting 20150827
+        //setContentView(R.layout.conversation_list_screen);
+        setContentView(R.layout.ramos_conversation_list_screen);
+        //[Ramos]end liting
+        
         mSmsPromoBannerView = findViewById(R.id.banner_sms_promo);
         /// M: Code analyze 002, For new feature ALPS00041233, msim enhancment check in . @{
         mStatusBarManager = (StatusBarManager) getSystemService(Context.STATUS_BAR_SERVICE);
         /// @}
         mQueryHandler = new ThreadListQueryHandler(getContentResolver());
+		
+        //[Ramos]added by liting 20150827
+        mMenu_search = (TextView) findViewById(R.id.menu_search);
+        mMenu_search.setOnClickListener(this);
+        mMenu_action_compose_new = (TextView) findViewById(R.id.menu_action_compose_new);
+        mMenu_action_compose_new.setOnClickListener(this);
+        mMenu_action_settings = (TextView) findViewById(R.id.menu_action_settings);
+        mMenu_action_settings.setOnClickListener(this);
+        mMenu_delete = (TextView) findViewById(R.id.menu_delete);
+        mMenu_delete.setVisibility(View.GONE);
+        mMenu_delete.setOnClickListener(this);
+        //[Ramos]end liting
 
         mListView = getListView();
-        mListView.setOnCreateContextMenuListener(mConvListOnCreateContextMenuListener);
+		//[ramos] deleted by liting 20151009 for 0008257
+        //mListView.setOnCreateContextMenuListener(mConvListOnCreateContextMenuListener);
+		//[ramos] end liting
         mListView.setOnKeyListener(mThreadListKeyListener);
         /// M: Code analyze 005, For new feature ALPS00247476, add selectAll/unSelectAll . @{
         mListView.setOnScrollListener(mScrollListener);
@@ -337,7 +379,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         mNetworkStatusBar = (LinearLayout) findViewById(R.id.no_itnernet_view);
         TextView networkStatusTextView = ((TextView) mNetworkStatusBar.findViewById(R.id.no_internet_text));
 
-        mListView.setOnItemLongClickListener(new ItemLongClickListener());
+		//[ramos] deleted by liting 20151009 for 0008257
+        //mListView.setOnItemLongClickListener(new ItemLongClickListener());
+		//[ramos] end liting
         /// M: Optimize select all performance, restore Actionmode status. @{
         if (savedInstanceState != null) {
             mIsNeedRestoreAdapterState = savedInstanceState.getBoolean(NEED_RESTORE_ADAPTER_STATE, false);
@@ -356,6 +400,15 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         if (!checkedMessageLimits) {
             runOneTimeStorageLimitCheckForLegacyMessages();
         }
+
+        //[ramos] begin liting 20160411 for BUG0014757 and refer to repository of mtk6753
+        mFontScale = getResources().getConfiguration().fontScale;
+        MmsLog.d("litingnew", "system fontscale is:" + mFontScale);
+        if (mFontScale > MAX_FONT_SCALE) {
+            MmsLog.d(TAG, "system fontscale is:" + mFontScale);
+            mListAdapter.setSubjectSingleLineMode(true);
+        }
+        //[ramos] end liting
 
         /// Google JB MR1.1 patch. conversation list can restore scroll position
         if (savedInstanceState != null) {
@@ -387,14 +440,37 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         ViewGroup v = (ViewGroup)LayoutInflater.from(this)
             .inflate(R.layout.conversation_list_actionbar, null);
+		//[ramos]modified by liting 20150918ssss
+/*
         actionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM,
                 ActionBar.DISPLAY_SHOW_CUSTOM);
         actionBar.setCustomView(v,
                 new ActionBar.LayoutParams(ActionBar.LayoutParams.WRAP_CONTENT,
                         ActionBar.LayoutParams.WRAP_CONTENT,
                         Gravity.CENTER_VERTICAL | Gravity.RIGHT));
-
+*/
+		actionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
+		actionBar.setCustomView(R.layout.ramos_actionbar);
+		TextView actionbartitle=(TextView)findViewById(R.id.ramos_actionbar_title);
+		actionbartitle.setText(R.string.conversation_list_title);
+		mMultChoiceEdit=(TextView)findViewById(R.id.ramos_edit);
+		mMultChoiceEdit.setVisibility(View.VISIBLE);
+		mMultChoiceEdit.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+					mActionMode = startActionMode(mActionModeListener);
+					//mActionModeListener.setItemChecked(0, true, null);
+					mActionModeListener.updateActionMode();
+					if (mListAdapter != null) {
+						mListAdapter.notifyDataSetChanged();
+					}
+                }
+            });
+		TextView returntextview=(TextView)findViewById(R.id.preference_return_textview);
+		LinearLayout linear=(LinearLayout)findViewById(R.id.preference_actionbar_return);
+		linear.setVisibility(View.GONE);
+		//[ramos]end liting
         mUnreadConvCount = (TextView)v.findViewById(R.id.unread_conv_count);
+
     }
 
     private final ConversationListAdapter.OnContentChangedListener mContentChangedListener =
@@ -823,7 +899,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         /// M: Code analyze 011, add code for omacp . @{
         item = menu.findItem(R.id.action_omacp);
-        item.setVisible(false);
+		//[ramos]modified by liting 2150923
+		if (item != null) {
+        	item.setVisible(false);
+		}
+		//[ramos]end liting
         Context otherAppContext = null;
         try {
             otherAppContext = this.createPackageContext("com.mediatek.omacp",
@@ -843,8 +923,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         mIpConvList.onIpPrepareOptionsMenu(menu);
         item = menu.findItem(R.id.action_wappush);
-        item.setVisible(true);
-
+		//[ramos]modified by liting 2150923
+		if (item != null) {
+        	item.setVisible(true);
+		}
+		//[ramos]end liting
         //add for multi user feature
         if (UserHandle.myUserId() != UserHandle.USER_OWNER) {
             MenuItem itemSetting = menu.findItem(R.id.action_settings);
@@ -852,6 +935,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             itemSetting.setVisible(false);
             itemSimInfo.setVisible(false);
         }
+		//[ramos]added by liting 20150918
+        menu.clear();
+		//[ramos]end liting
 
         return true;
     }
@@ -1036,7 +1122,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         return intent;
     }
-
+	
     private final OnCreateContextMenuListener mConvListOnCreateContextMenuListener =
         new OnCreateContextMenuListener() {
         @Override
@@ -1174,7 +1260,10 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             Collection<Long> threadIds,
             boolean hasLockedMessages,
             Context context) {
-        View contents = View.inflate(context, R.layout.delete_thread_dialog_view, null);
+    	//[ramos]modified by liting 20150918
+        //View contents = View.inflate(context, R.layout.delete_thread_dialog_view, null);
+        View contents = View.inflate(context, R.layout.ramos_dialog, null);
+        //[ramos]end liting
         TextView msg = (TextView)contents.findViewById(R.id.message);
 
         if (threadIds == null) {
@@ -1232,14 +1321,41 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         /// @}
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle(R.string.confirm_dialog_title)
-            .setIconAttribute(android.R.attr.alertDialogIcon)
-            .setCancelable(true)
-            .setPositiveButton(R.string.delete, listener)
-            .setNegativeButton(R.string.no, null)
-            .setView(contents);
+        //[ramos]added by liting 20150918
+//        builder.setTitle(R.string.confirm_dialog_title)
+//            .setIconAttribute(android.R.attr.alertDialogIcon)
+//            .setCancelable(true)
+//            .setPositiveButton(R.string.delete, listener)
+//            .setNegativeButton(R.string.no, null)
+//            .setView(contents);
+        //[ramos]end liting
         mDeleteAlertDialog = builder.create();
         mDeleteAlertDialog.show();
+        //[ramos]added by liting 20150918
+		LayoutParams layoutParams;
+		mDeleteAlertDialog.setCanceledOnTouchOutside(true);
+		mDeleteAlertDialog.setContentView(contents);
+		WindowManager m = ((Activity) context).getWindowManager();
+		Display d = m.getDefaultDisplay();	
+		layoutParams = mDeleteAlertDialog.getWindow().getAttributes();
+		layoutParams.width = getResources().getDimensionPixelSize(R.dimen.ramos_dialog_width);
+		mDeleteAlertDialog.getWindow().setAttributes(layoutParams); 
+		Button btnLeft = (Button) mDeleteAlertDialog.findViewById(R.id.btn_left);		
+		Button btnRight = (Button) mDeleteAlertDialog.findViewById(R.id.btn_right);	
+		btnLeft.setOnClickListener(new Button.OnClickListener() {
+				@Override
+				public void onClick(View arg0) {
+					// TODO Auto-generated method stub
+					mDeleteAlertDialog.dismiss();
+				}
+		});
+		btnRight.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				listener.onClick(mDeleteAlertDialog, 0);
+			}
+		});
+        //[ramos]end liting
     }
 
     private final OnKeyListener mThreadListKeyListener = new OnKeyListener() {
@@ -1446,7 +1562,22 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
 //                if (!MmsConfig.isActivated(ConversationList.this)) {
                     if (mListAdapter.getCount() == 0 && getListView().getEmptyView() instanceof TextView) {
-                        ((TextView) (getListView().getEmptyView())).setText(R.string.no_conversations);
+//[Ramos]added by liting 20150827
+                        //((TextView) (getListView().getEmptyView())).setText(R.string.no_conversations);
+						((TextView)(getListView().getEmptyView())).setText(R.string.ramos_empty);
+						Drawable drawablecollectdis = getResources().getDrawable(
+							R.drawable.ramos_sms_empty_icon);
+							drawablecollectdis.setBounds(0, 0,
+							drawablecollectdis.getMinimumWidth(),
+							drawablecollectdis.getMinimumHeight());
+						((TextView)(getListView().getEmptyView())).setCompoundDrawables(null, drawablecollectdis, null, null);
+						//[ramos]end
+						mMenu_search.setEnabled(false);
+						mMultChoiceEdit.setVisibility(View.GONE);
+					} else {
+						mMenu_search.setEnabled(true);
+						mMultChoiceEdit.setVisibility(View.VISIBLE);
+//[ramos]end liting
                     }
 //                }
                 /** M: add code @{ */
@@ -1689,12 +1820,39 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             mDeleteItem = menu.findItem(R.id.delete);
 
             if (mMultiSelectActionBarView == null) {
+//[ramos]modified by liting 20150919
+                //mMultiSelectActionBarView = LayoutInflater.from(ConversationList.this)
+                //    .inflate(R.layout.conversation_list_multi_select_actionbar2, null);
                 mMultiSelectActionBarView = LayoutInflater.from(ConversationList.this)
-                    .inflate(R.layout.conversation_list_multi_select_actionbar2, null);
+                        .inflate(R.layout.ramos_conversation_list_multi_select_actionbar, null);
+//[ramos]end liting
                 /// M: change select tips style
                 mSelectionTitle = (Button) mMultiSelectActionBarView.findViewById(R.id.selection_menu);
                 //mSelectedConvCount =
                 //    (TextView)mMultiSelectActionBarView.findViewById(R.id.selected_conv_count);
+//[ramos]added by liting 20150919
+                mSelectionTitle.setEnabled(false);
+                mMenu_select = (TextView) mMultiSelectActionBarView.findViewById(R.id.selecte_all);
+				mMenu_select.setOnClickListener(new View.OnClickListener() {
+					@Override
+					public void onClick(View arg0) {
+						// TODO Auto-generated method stub
+						if (mListAdapter.getCount() == mListAdapter.getSelectedThreadsList().size()) {
+	                        setAllItemChecked(mActionMode, false);
+	                    } else {
+	                        setAllItemChecked(mActionMode, true);
+	                    }
+					}
+                });
+				mCancel = (TextView) mMultiSelectActionBarView.findViewById(R.id.cancel);
+				mCancel.setOnClickListener(new View.OnClickListener() {
+					@Override
+					public void onClick(View arg0) {
+						// TODO Auto-generated method stub						
+						mActionMode.finish();
+					}
+                });
+//[ramos]end liting
             }
             mode.setCustomView(mMultiSelectActionBarView);
             ((Button) mMultiSelectActionBarView.findViewById(R.id.selection_menu))
@@ -1707,19 +1865,42 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             getListView().setLongClickable(false);
             /// @}
             mIpConvList.onIpCreateActionMode(mode, menu);
+            //[ramos]added by liting 20150918
+            mMenu_search.setVisibility(View.GONE);
+            mMenu_action_compose_new.setVisibility(View.GONE);
+            mMenu_action_settings.setVisibility(View.GONE);
+            mMenu_delete.setVisibility(View.VISIBLE);
+            //[ramos]end liting
             return true;
         }
 
         @Override
         public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
             if (mMultiSelectActionBarView == null) {
+//[ramos]modified by liting 20150919
+                //ViewGroup v = (ViewGroup)LayoutInflater.from(ConversationList.this)
+                //    .inflate(R.layout.conversation_list_multi_select_actionbar2, null);
                 ViewGroup v = (ViewGroup)LayoutInflater.from(ConversationList.this)
-                    .inflate(R.layout.conversation_list_multi_select_actionbar2, null);
+                    .inflate(R.layout.ramos_conversation_list_multi_select_actionbar, null);
+//[ramos]end liting
                 mode.setCustomView(v);
                 /// M: change select tips style
                 mSelectionTitle = (Button) mMultiSelectActionBarView.findViewById(R.id.selection_menu);
                 //mSelectedConvCount = (TextView)v.findViewById(R.id.selected_conv_count);
-
+                //[ramos]added by liting 20150919
+                mMenu_select = (TextView) mMultiSelectActionBarView.findViewById(R.id.selecte_all);
+                mMenu_select.setOnClickListener(new View.OnClickListener() {
+					@Override
+					public void onClick(View arg0) {
+						// TODO Auto-generated method stub
+						if (mListAdapter.getCount() == mListAdapter.getSelectedThreadsList().size()) {
+	                        setAllItemChecked(mActionMode, false);
+	                    } else {
+	                        setAllItemChecked(mActionMode, true);
+	                    }
+					}
+                });
+                //[ramos]end liting
             }
             /// M: redesign selection action bar and add shortcut in common version. @{
             if (mCustomMenu == null) {
@@ -1742,6 +1923,9 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             });
             /// @}
             mIpConvList.onIpPrepareActionMode(mode, menu);
+            //[ramos]added by liting 20150919
+            menu.clear();
+            //[ramos]end liting
             return true;
         }
 
@@ -1781,6 +1965,12 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             if (mListAdapter != null) {
                 mListAdapter.notifyDataSetChanged();
             }
+			//[ramos]added by liting 20150918
+            mMenu_search.setVisibility(View.VISIBLE);
+            mMenu_action_compose_new.setVisibility(View.VISIBLE);
+            mMenu_action_settings.setVisibility(View.VISIBLE);
+            mMenu_delete.setVisibility(View.GONE);
+            //[ramos]end liting
             /// @}
         }
 
@@ -1811,17 +2001,30 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             if (mDeleteItem != null) {
                 if (checkedNum > 0) {
                     mDeleteItem.setEnabled(true);
+                    //[ramos] begin by liting 20151218 for BUG0011906
+                    if (mIsSmsEnabled) {
+                        mMenu_delete.setEnabled(true);
+                    }
+                    //[ramos] end liting
                 } else {
                     mDeleteItem.setEnabled(false);
+                    //[ramos]added by liting 20150918
+                    mMenu_delete.setEnabled(false);
+                    //[ramos]end liting
                 }
                 /// @}
             }
             if (mSelectionTitle != null && !mSelectionTitle.isEnabled()) {
-                mSelectionTitle.setEnabled(true);
+            	//[ramos]modified by liting 20150919
+                //mSelectionTitle.setEnabled(true);
+                mSelectionTitle.setEnabled(false);
+                //[ramos]end liting
             }
             /// M: exit select mode if no item select
             if (checkedNum <= 0 && mActionMode != null) {
-                mActionMode.finish();
+				//[ramos] deleted by liting 20151010
+                //mActionMode.finish();
+				//[ramos] end liting
                 ///M: add for fix ALPS01448613, when checkedNum == 0, dismiss the deleteAlertDialog. @{
                 if (mDeleteAlertDialog != null && mDeleteAlertDialog.isShowing()) {
                     mDeleteAlertDialog.dismiss();
@@ -1829,13 +2032,22 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 }
                 /// @}
             }
-            mSelectionTitle.setText(ConversationList.this.getResources().getQuantityString(
-                    R.plurals.message_view_selected_message_count, checkedNum, checkedNum));
+			//[ramos] modified by liting 20151009 for BUG0008530
+			if (checkedNum == 0) {
+				mSelectionTitle.setText(R.string.ramos_select);
+			} else {
+	            mSelectionTitle.setText(ConversationList.this.getResources().getQuantityString(
+	                    R.plurals.message_view_selected_message_count, checkedNum, checkedNum));
+			}
+			//[ramos] end liting
             if (mActionMode != null) {
                 mActionMode.invalidate();
             }
             updateSelectionTitle();
             mIpConvList.onIpUpdateActionMode(mSelectedThreadIds);
+			//[ramos]added by liting 20150918
+            updateMenuSelect();
+            //[ramos]end liting
         }
 
         /// M: Code analyze 005, For new feature ALPS00247476, select all messages . @{
@@ -1874,8 +2086,16 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             // mDeleteItem menu . @{
             if (checked) {
                 mDeleteItem.setEnabled(true);
+                //[ramos] begin by liting 20151218 for BUG0011906
+                if (mIsSmsEnabled) {
+                    mMenu_delete.setEnabled(true);
+                }
+                //[ramos] end liting
             } else {
                 mDeleteItem.setEnabled(false);
+                //[ramos]added by liting 20150918
+                mMenu_delete.setEnabled(false);
+                //[ramos]end liting
             }
             // / @}
 
@@ -1974,9 +2194,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         // Multi-select is used to delete conversations. It is disabled if we are not the sms app.
         ListView listView = getListView();
         if (mIsSmsEnabled) {
-            if (listView.getOnItemLongClickListener() == null) {
-                listView.setOnItemLongClickListener(new ItemLongClickListener());
-            }
+			//[ramos] deleted by liting 20151009 for 0008257
+            //if (listView.getOnItemLongClickListener() == null) {
+            //    listView.setOnItemLongClickListener(new ItemLongClickListener());
+            //}
+			//[ramos] end liting
         } else {
             listView.setOnItemLongClickListener(null);
             if (mActionMode != null) {
@@ -2428,4 +2650,67 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
     };
 
+	//[Ramos]added by liting 20150918
+    @Override
+    public void onClick(View v) {
+        if (v == mMenu_search) {
+            Intent intent_search = new Intent(this, RamosSearchMms.class);
+            startActivityIfNeeded(intent_search, -1);
+        }else if (v == mMenu_action_compose_new){
+			if (mIsSmsEnabled) {
+				createNewMessage();
+			} else {
+				// Display a toast letting the user know they can not compose.
+				if (mComposeDisabledToast == null) {
+					mComposeDisabledToast = Toast.makeText(this,
+							R.string.compose_disabled_toast, Toast.LENGTH_SHORT);
+				}
+				mComposeDisabledToast.show();
+			}
+        }else if (v == mMenu_action_settings){
+            Intent settingIntent = new Intent(this, SettingListActivity.class);
+            startActivityIfNeeded(settingIntent, -1); 
+        } else if (v == mMenu_delete){
+        	
+			if (mActionModeListener.mSelectedThreadIds.size() > 0) {
+				Log.v(TAG, "ConversationList->ModeCallback: delete");
+				if (mDeleteAlertDialog != null && mDeleteAlertDialog.isShowing()) {
+					MmsLog.d(TAG, "no need to show delete dialog");
+				} else {
+					confirmDeleteThreads(mActionModeListener.mSelectedThreadIds, mQueryHandler);
+				}
+			} else {
+				mMenu_delete.setEnabled(false);
+			}
+            //mMode.finish();
+            //mMode = null;
+        }
+    }
+
+    private void updateMenuSelect() {
+        if (mListAdapter.getCount() == mListAdapter.getSelectedThreadsList().size()) {
+        	mMenu_select.setText(R.string.not_choose_all);
+        } else {
+        	mMenu_select.setText(R.string.choose_all);
+        }
+    }
+	
+    // [ramos] for new contact menu added by shuyong 20150824
+    public static Intent createNewContactIntent(String address) {
+        // address must be a single recipient
+        Intent intent = new Intent(Intent.ACTION_INSERT, Contacts.CONTENT_URI);                
+        //intent.setType(Contacts.CONTENT_ITEM_TYPE);
+        if (Mms.isEmailAddress(address)) {
+            intent.putExtra(ContactsContract.Intents.Insert.EMAIL, address);
+        } else {
+            intent.putExtra(ContactsContract.Intents.Insert.PHONE, address);
+            intent.putExtra(ContactsContract.Intents.Insert.PHONE_TYPE,
+                    ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE);
+        }
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+
+        return intent;
+    }
+    // [ramos] end
+    //[Ramos]end liting
 }

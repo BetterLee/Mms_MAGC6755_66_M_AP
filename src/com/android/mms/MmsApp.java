@@ -112,7 +112,9 @@ public class MmsApp extends Application implements IMmsAppCallback {
     public static final int EVENT_QUIT = 100;
     private static HandlerThread mToastthread = null;
     private static ToastHandler mToastHandler = null;
-
+    //[ramos] begin liting 20160310
+    public static final boolean isDualRingtone = true;
+    //[ramos] end liting
     private final BroadcastReceiver mLocaleChangedReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {

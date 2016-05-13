@@ -23,7 +23,7 @@
         <item name="android:textSize">13sp</item>
         <item name="android:textColor">?android:textColorSecondaryInverse</item>
     </style>
-
+<!--
     <style name="MmsTheme" parent="@android:style/Theme.Material.Light">
            <item name="android:colorPrimary">@color/primary</item>   
            <item name="android:colorPrimaryDark">@color/primary_dark</item>
@@ -36,7 +36,6 @@
            <item name="android:actionBarSize">@dimen/atcionbar_size</item>
            <item name="android:editTextBackground">@null</item>
     </style>
-
     <style name="MmsActionBarTheme" parent="@android:style/Theme.Material.Light">
            <item name="android:colorPrimary">@color/primary</item>   
            <item name="android:colorPrimaryDark">@color/primary_dark</item>
@@ -50,6 +49,119 @@
         <item name="android:textColor">@color/white</item>
         <item name="android:actionModeBackground">@color/primary</item>
     </style>
+-->
+    <!-- [ramos] begin liting 20160316 -->
+    <style name="MmsTheme" parent="@android:style/Theme.Material.Light">
+           <item name="android:colorPrimary">@color/white</item>   
+           <item name="android:colorPrimaryDark">@color/ramos_primary_dark</item>
+           <item name="android:textColorPrimary">@color/black</item>
+           <item name="android:textColor">@*android:color/primary_text_light</item>
+           <item name="android:actionBarWidgetTheme">@style/HoloLightSelectMode</item>
+           <item name="android:actionBarStyle">@style/RamosActionBar</item>
+           <item name="android:actionModeStyle">@style/MmsActionMode</item>
+           <item name="android:colorAccent">@color/ramos_primary</item>
+           <item name="android:alertDialogTheme">@style/SmsAlertDialog</item>
+           <item name="android:actionBarSize">@dimen/atcionbar_size</item>
+           <item name="android:actionModeCloseDrawable">@null</item>
+           <item name="android:actionModeCloseButtonStyle">@style/NoCloseButton</item>
+           <item name="android:actionModeBackground">@color/white</item>
+           <item name="android:homeAsUpIndicator">@drawable/ramos_actionbar_return</item>
+    </style>
+    <style name="MmsActionBarTheme" parent="@android:style/Theme.Material.Light">
+           <item name="android:colorPrimary">@color/white</item>   
+           <item name="android:colorPrimaryDark">@color/ramos_primary_dark</item>
+           <item name="android:textColorPrimary">@color/black</item>
+           <item name="android:textColor">@*android:color/primary_text_light</item>
+           <item name="android:actionBarSize">@dimen/atcionbar_size</item>
+    </style>
+    
+    <style name="MmsActionMode" parent="@android:style/Widget.Material.Light.ActionMode">
+        <item name="android:background">@color/white</item>
+        <item name="android:textColor">@color/black</item>
+        <item name="android:actionModeBackground">@color/white</item>
+        <item name="*android:closeItemLayout">@null</item>
+    </style>
+    <style name="RamosActionBar" parent="@android:style/Widget.Material.Light.ActionBar.Solid">        
+        <item name="android:contentInsetStart">@dimen/actionbar_contentInsetStart</item>	
+        <item name="android:contentInsetEnd">@dimen/actionbar_contentInsetStart</item>
+        <item name="android:background">@color/white</item>		
+        <item name="android:elevation">0dp</item>  
+    </style>
+    <!-- [ramos] begin by liting 20151216 for BUG0010872 associated with frameworks\base\core\java\com\android\internal\widget\ActionBarContextView.java-->
+    <style name="NoCloseButton" parent="@android:style/Widget.ActionButton.CloseMode">
+            <item name="android:visibility">gone</item>
+    </style>
+    <!-- [ramos] end liting -->
+
+    <!-- [ramos]modified by liting 20150929  MmsSettings Theme-->
+    <style name="Theme.ActionBar" parent="@android:style/Widget.Material.Light.ActionBar.Solid">        
+        <item name="android:contentInsetStart">@dimen/actionbar_contentInsetStart</item>	
+        <item name="android:contentInsetEnd">@dimen/actionbar_contentInsetStart</item>
+        <item name="android:background">@color/white</item>		
+        <item name="android:elevation">0dp</item>		
+        <!-- <item name="android:titleTextStyle">@style/ramos_actionbar_tite</item> -->    
+    </style>
+    
+    <style name="PreferenceHeaderPanelSinglePane">
+        <item name="android:layout_marginStart">0dp</item>
+        <item name="android:layout_marginEnd">0dp</item>
+    </style>
+
+    <style name="PreferencePanelSinglePane" parent="@*android:style/PreferencePanel">
+        <item name="android:layout_marginStart">0dp</item>
+        <item name="android:layout_marginEnd">0dp</item>
+        <item name="android:paddingStart">0dp</item>
+        <item name="android:paddingEnd">0dp</item>
+        <item name="android:background">@null</item>
+        <item name="android:scrollbarStyle">outsideOverlay</item>  
+    </style>
+    
+    <style name="PreferenceHeaderListSinglePane" parent="@*android:style/PreferenceHeaderList">
+        <item name="android:paddingStart">@dimen/settings_side_margin</item>
+        <item name="android:paddingEnd">@dimen/settings_side_margin</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+        <item name="android:layout_marginStart">0dp</item>
+        <item name="android:layout_marginEnd">0dp</item>
+        <item name="android:layout_marginTop">0dp</item>
+        <item name="android:layout_marginBottom">0dp</item>
+        <item name="android:scrollbarStyle">outsideOverlay</item>  
+    </style>
+    
+    <style name="PreferenceFragmentListSinglePane" parent="@*android:style/PreferenceFragmentList">
+        <item name="android:paddingStart">@dimen/settings_side_margin</item>
+        <item name="android:paddingEnd">@dimen/settings_side_margin</item>
+        <item name="android:layout_marginStart">0dp</item>
+        <item name="android:layout_marginEnd">0dp</item>
+        <item name="android:scrollbarStyle">outsideOverlay</item>
+        <item name="android:divider">@null</item>  
+    </style>
+    
+    <style name="PreferenceFragmentStyle" parent="@*android:style/PreferenceFragment">
+        <item name="android:layout">@layout/ramos_preference_list_fragment</item> 
+    </style>
+    
+    <style name="preferenceActivityStyle" parent="@*android:style/Preference">
+        <item name="android:layout">@layout/ramos_preference_list_content</item> 
+    </style>   
+
+    <style name="Theme.Mms.SettingsBase" parent="@android:style/Theme.Material.Settings" />
+
+    <style name="Theme.Mms.Settings" parent="Theme.Mms.SettingsBase">
+        <item name="@*android:preferenceHeaderPanelStyle">@style/PreferenceHeaderPanelSinglePane</item>
+        <item name="@*android:preferencePanelStyle">@style/PreferencePanelSinglePane</item>
+        <item name="@*android:preferenceListStyle">@style/PreferenceHeaderListSinglePane</item>
+        <item name="@*android:preferenceFragmentListStyle">@style/PreferenceFragmentListSinglePane</item>
+        <item name="@*android:preferenceFragmentStyle">@style/PreferenceFragmentStyle</item>
+        <item name="@*android:preferenceFragmentPaddingSide">@dimen/settings_side_margin</item>
+        <item name="@*android:preferenceActivityStyle">@style/preferenceActivityStyle</item>
+        <item name="android:actionBarStyle">@style/Theme.ActionBar</item>
+        <item name="android:actionBarSize">@dimen/atcionbar_size</item>
+        <item name="android:colorAccent">@color/ramos_settings_accent</item>
+        <item name="android:switchStyle">@android:style/style_ramos_Switch</item>
+    </style>
+
+    <!-- [ramos] end liting 20160316 -->
     <style name="MmsActionBar" parent="@android:style/ThemeOverlay.Material.ActionBar">
         <item name="android:background">@color/white</item>
         <item name="android:textColor">@color/black</item>
@@ -104,6 +216,7 @@
         <item name="android:itemPadding">8dip</item>
     </style>
   <!-- Dialog mode-->
+<!--
   <style name="SmsDlgScreen" parent="@android:style/Theme.Material.Light.Dialog">
       <item name="android:windowNoTitle">true</item>
       <item name="android:colorPrimary">@color/primary</item>
@@ -115,6 +228,19 @@
       <item name="android:editTextBackground">@null</item>
 
   </style>
+-->
+  <!-- [ramos]modified by liting 20150929  for BUG0009223-->
+  <style name="SmsDlgScreen" parent="@android:style/Theme.Material.Light.Dialog">
+      <item name="android:windowNoTitle">true</item>
+      <item name="android:colorPrimary">@color/ramos_primary</item>
+      <item name="android:colorPrimaryDark">@color/ramos_primary_dark</item>
+      <item name="android:textColorPrimary">@color/black</item>
+      <item name="android:textColor">@*android:color/primary_text_light</item>
+      <item name="android:actionModeStyle">@style/MmsActionMode</item>
+      <item name="android:colorAccent">@color/ramos_primary</item>
+      <item name="android:windowBackground">@drawable/ramos_dialog_background_material</item>
+  </style>
+  <!-- [ramos]modified by liting 20150929  for BUG0009223-->
 
     <style name="SmsAlertDialog" parent="@android:style/Theme.Material.Light.Dialog.Alert">
       <item name="android:colorPrimary">@color/primary</item>
@@ -227,4 +353,30 @@
         <item name="android:textCursorDrawable">@null</item>
         <item name="android:textColorHighlight">@android:color/holo_blue_light</item>
     </style>
+    <!-- [ramos] shuyong 20150906 begin -->
+    <style name="RadioButtonStyle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:gravity">center</item>
+        <item name="android:layout_weight">1.0</item>
+        <item name="android:button">@null</item>
+        <item name="android:layout_gravity">center</item>
+        <item name="android:singleLine">true</item>    
+        <item name="android:paddingTop">3dip</item>   
+        <item name="android:textColor">@color/ramos_menu_color</item>   
+    </style>
+    <!-- [ramos] end -->
+    <!-- [ramos] added liting 20150923 -->
+    <!-- [ramos] modified liting 20151022 for BUG0009220 -->
+    <style name="Transparent" parent="android:Theme.Material.Wallpaper.NoTitleBar">
+        <item name="android:windowBackground">@color/half_transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowAnimationStyle">@style/AnimBottom</item>
+        <item name="android:colorAccent">@color/primary</item>
+    </style>
+    <style name="AnimBottom" parent="@android:style/Animation">
+        <item name="android:windowEnterAnimation">@null</item>
+        <item name="android:windowExitAnimation">@null</item>
+    </style>
+    <!-- [ramos] end liting-->
 </resources>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/actionbar_relate"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/ramos_actionbar">
+   
+    <LinearLayout 
+        android:id="@+id/preference_actionbar_return"
+        android:layout_alignParentLeft="true"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:gravity="center">
+    
+        <ImageView 
+            android:id="@+id/preference_return_imageview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="8dip"
+            android:layout_alignParentLeft="true"
+            android:src="@drawable/ramos_actionbar_return"/>
+		    
+        <TextView 
+            android:id="@+id/preference_return_textview"
+            android:layout_toRightOf="@id/preference_return_imageview"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:singleLine="true"
+            android:textSize="@dimen/ramos_actionbar_text"
+            android:textColor="@color/actionbar_back_title"
+            android:layout_marginRight="8dip"
+            android:visibility="visible"/>
+    
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingLeft="4dip"
+        android:layout_gravity="center"
+        android:layout_centerInParent="true" >
+
+        <TextView
+            android:id="@+id/tv_top_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.0"
+            android:gravity="center"
+            android:layout_gravity="center_vertical"
+            android:ellipsize="none"
+            android:singleLine="true"
+            android:textColor="@color/ramos_actionbar_title"
+            android:textSize="@dimen/ramos_actionbar_text" 
+            android:layout_centerInParent="true"/>
+
+        <TextView
+            android:id="@+id/tv_top_subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.0"
+            android:layout_gravity="center_vertical"
+            android:gravity="center"
+            android:ellipsize="none"
+            android:singleLine="true"
+            android:textColor="@color/ramos_actionbar_title"
+            android:textSize="@dimen/ramos_menu_text"
+            android:layout_centerInParent="true"/>
+
+    </LinearLayout>
+        
+
+    <View 
+         android:id="@+id/bottom_line"
+         android:layout_width="match_parent"
+         android:layout_height="0.7dip"
+         android:layout_alignParentBottom="true"
+         android:background="@color/top_line"/>
+         
+    <include layout="@layout/ramos_option_menu_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/ramos_menu_list_compose"/>
+
+</RelativeLayout>

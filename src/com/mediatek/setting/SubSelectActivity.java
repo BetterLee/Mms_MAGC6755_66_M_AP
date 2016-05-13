@@ -60,6 +60,12 @@ import com.mediatek.opmsg.util.OpMessageUtils;
 import com.mediatek.setting.SimStateMonitor.SimStateListener;
 import com.mediatek.simmessage.ManageSimMessages;
 import com.mediatek.telephony.TelephonyManagerEx;
+//[ramos]added by liting 20150929
+import android.widget.TextView;
+import android.widget.LinearLayout;
+import android.widget.Switch;
+import android.widget.RelativeLayout;
+//[ramos]end liting
 
 public class SubSelectActivity extends ListActivity implements SimStateListener{
 
@@ -101,6 +107,49 @@ public class SubSelectActivity extends ListActivity implements SimStateListener{
         //add action bar
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
+        //[ramos]modified by liting 20150918
+        //setContentView(R.layout.setting_list);
+        setContentView(R.layout.ramos_setting_list);
+        actionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
+        actionBar.setCustomView(R.layout.ramos_actionbar);
+        TextView actionbartitle=(TextView)findViewById(R.id.ramos_actionbar_title);
+        actionbartitle.setText(mPreferenceTitleId);
+        
+    	TextView returntextview=(TextView)findViewById(R.id.preference_return_textview);
+
+		
+		switch (mPreferenceTitleId) {
+			case R.string.pref_title_sms_delivery_reports:
+			case R.string.sms_service_center:
+			case R.string.pref_title_manage_sim_messages:
+			case R.string.sms_save_location:
+				returntextview.setText(R.string.actionbar_sms_setting);
+				break;
+			case R.string.pref_title_mms_delivery_reports:
+			case R.string.pref_title_mms_read_reports:
+			case R.string.pref_title_mms_auto_reply_read_reports:
+			case R.string.pref_title_mms_auto_retrieval:
+			case R.string.pref_title_mms_retrieval_during_roaming:
+				returntextview.setText(R.string.actionbar_mms_setting);
+				break;
+		}
+    	returntextview.setVisibility(View.VISIBLE);
+    	LinearLayout linear=(LinearLayout)findViewById(R.id.preference_actionbar_return);
+    	linear.setVisibility(View.VISIBLE);
+		linear.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    finish();
+                }
+            });
+		//[ramos]modified by liting 20151015 for BUG0008725
+        if(!getResources().getConfiguration().locale.getCountry().equals("CN")) {
+			RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams)actionbartitle.getLayoutParams();
+			//params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+			params.addRule(RelativeLayout.RIGHT_OF, R.id.preference_actionbar_return);
+			actionbartitle.setLayoutParams(params);
+		}
+		//[ramos] end liting
+		//[ramos] end liting
         mOldSubCount = SubscriptionManager.from(MmsApp.getApplication())
                 .getActiveSubscriptionInfoCount();
         setAdapter();
@@ -214,7 +263,9 @@ public class SubSelectActivity extends ListActivity implements SimStateListener{
             editor.putBoolean(Long.toString((mSubInfoList.get(position)).getSubscriptionId()) + "_"
                     + mPreferenceKey, (!isChecked));
             editor.apply();
-            CheckBox subCheckBox = (CheckBox) v.findViewById(R.id.subCheckBox);
+			//[ramos] modified by liting 20150929 CheckBox -> Switch
+            Switch subCheckBox = (Switch) v.findViewById(R.id.subCheckBox);
+			//[ramos] end liting
             subCheckBox.setChecked(!isChecked);
         }
     }

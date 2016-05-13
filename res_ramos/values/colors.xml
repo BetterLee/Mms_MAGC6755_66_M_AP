@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/*
+ * Copyright (C) 2007-2008 Esmertec AG.
+ * Copyright (C) 2007-2008 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+-->
+<resources>
+    <color name="ramos_primary">#ff00a2ff</color>
+    <color name="ramos_primary_dark">#ff21272b</color>
+    <color name="actionbar_back_title">#00A2FF</color>    
+    <color name="menu_sel_color">#ff03adff</color>
+    <color name="color_tag">#222222</color>
+    <color name="color_hint">#c8c6c6</color>
+    <color name="half_transparent">#9000</color>
+    <color name="half_transparents">#8C8C8C</color>
+    <color name="category_bg_color">#EBEBEB</color>
+    <color name="circle_avatar_frame_color">#ffffffff</color>
+    <color name="tab_color">#f7f7f7</color>
+    <color name="top_line">#cfcfcf</color>
+    <color name="red">#FF0000</color>
+    <color name="grid_back">#c9c9c9</color>
+    <color name="grid_item_back">#ebebeb</color>
+    <color name="ramos_title">#323232</color>
+    <color name="ramos_summary">#787878</color>
+    <drawable name="ramos_text_color_red">#ff3939</drawable>
+    <color name="ramos_dialog">#f6f9fb</color>
+    <color name="ramos_dialog_title">#f6f9fb</color>
+    <color name="ramos_dialog_button">#03a3ff</color>
+    <color name="ramos_dialog_message">#a4a4a4</color>
+    <color name="ramos_settings_accent">#009289</color>
+    <color name="ramos_listview_background">#99ffffff</color>
+    <color name="ramos_actionbar_title">#505050</color>
+    <color name="ramos_actionbar">#fafafa</color>
+    <color name="ramos_sub_sim_sel">#4aaf36</color>
+    <color name="ramos_sub_sim_nor">#777777</color>
+    <color name="ramos_sub_sim_dis">#dcdcdc</color>
+    <color name="ramos_conversationlist_background">#fff5fafb</color>
+    <color name="color_name">#323232</color>
+    <color name="menu_summary_color">#ff7c7c7c</color>
+    <color name="ramos_menu_color_disabled">#ffd8d8d8</color>
+    <color name="ramos_menu_color_enabled">#ff7c7c7c</color>
+    <color name="ramos_menu_color_pressed">#ff00a2ff</color>
+    <color name="ramos_top_menu_color_enabled">#ff787878</color>    
+</resources>

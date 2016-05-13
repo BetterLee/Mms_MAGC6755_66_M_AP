@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/*
+ * Copyright (C) 2007-2008 Esmertec AG.
+ * Copyright (C) 2007-2008 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+-->
+
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="conversation_list_title">Message</string>
+    <string name="deleting_title">Delete</string>
+    <string name="string_btn_cancel">Cancel</string>
+    <string name="string_btn_sure">Sure</string>
+    <string name="menu_option">Options</string>
+    <string name="string_not_match">No Match</string>
+    <string name="ramos_empty">No Messages</string>
+    <string name="ramos_select">Select</string>
+    <string name="send_message_fail">"send sms failed"</string>
+    <string name="resend_message">"resend message"</string>
+    <string name="resend">"resend"</string>
+    <string name="menu_new_contact">"new contact"</string>
+    <string name="menu_copy_message">cpoy</string>
+    <string name="menu_details">detail</string>
+    <string name="menu_selected_item">"%1 selected"</string>
+    <string name="face">"face"</string>
+    <string name="attachment">"attachment"</string>
+    <string name="quick_reply">"quick reply"</string>    
+    <string name="edit_quick_reply">"edit quick reply"</string>  
+    <string name="add_quick_reply">"add quick reply"</string>
+    <string name="no_quick_reply_content">"no quick reply content"</string>
+    <string name="confirm_delete_quick_reply">"confirm delete the quick reply content?"</string>
+    <string name="input_content">"input content please"</string>
+    <string-array name="default_quick_reply">
+        <item>"Sorry, I'm busy, wait to contact you.。"</item>
+        <item>"Late back to you, forgive me."</item>
+        <item>"Traffic jam, late to."</item>
+    </string-array>
+    <string name="attach_contact">contact</string>
+    <string name="attach_timer">timer</string>
+    <string name="attach_theme">add subject</string>
+    <string name="name">name</string>
+    <string name="telephone">number</string>
+    <string name="set_image_as">set photo as</string>
+    <string name="send_message_success">send</string>
+    <string name="send_message_failure">send fail</string>
+    <string name="selected_count"><xliff:g id="COUNT">%d</xliff:g> item selected</string>
+    <string name="not_choose_all">"unselect all"</string>
+    <string name="choose_all">"select all"</string>
+    <string name="contact_app_not_found">"Contacts application not found"</string>
+    <string name="menu_more">More</string>
+    <string name="menu_save_as_sim1">save message to sim1</string>
+    <string name="menu_save_as_sim2">save message to sim2</string>
+    <string name="menu_save_attachment">save attachment</string>
+    <string name="ramos_sim_copy_to_phone_memory">Sim Copy to Phone Memory</string>
+    <string name="menu_write">Compose</string>
+    <string name="menu_call_sim1">"SIM Card 1 Call"</string>
+    <string name="menu_call_sim2">"SIM Card 2 Call"</string>
+    <string name="sub_choose_sim1">SIM Card 1></string>
+    <string name="sub_choose_sim2">SIM Card 2</string>
+    <string name="sent_on_unknown">"Sent: Unknown"</string>
+    <string name="setting_date">"Setting Date"</string>
+    <string name="setting_time">"Setting Time"</string>
+    <string name="need_login_email">Please register your Email account first.</string>
+    <string name="contact_view">"View contact"</string>
+    <string name="contact_add">"Add contact"</string>
+    <string name="black_list_add">"Add Black List"</string>
+    <string name="black_list_cancel">"Cancel Black List"</string>
+    <string name="ramos_dialing_options">"Dial Choose"</string>
+    <string name="ramos_sim_card_one_call">"SIM Card 1 Call"</string>
+    <string name="ramos_sim_card_two_call">"SIM Card 2 Call"</string>    
+    <string name="ramos_sim_mark">"Last Time"</string>   
+    <plurals name="confirm_delete_message">
+        <item quantity="one" msgid="350118636090800360">One message will be deleted</item>
+        <item quantity="other" msgid="6918094955792544014"><xliff:g id="number" example="15">%1$s</xliff:g> message will be deleted</item>
+    </plurals>
+    <string name="pref_title_notification_ringtone_sim1">"SIM Card 1 Sound"</string>
+    <string name="pref_title_notification_ringtone_sim2">"SIM Card 2 Sound"</string>
+    <string name="pref_title_notification_ringtone_ramos">"Sound"</string>
+    <string name="ramos_has_draft">"(draft)"</string>
+    <string name="message_option_open_browser">"Open Browser"</string>
+    <string name="message_option_send_email">"Send Email"</string>
+    <string name="message_option_send_mms">"Send Message"</string>
+</resources>
+

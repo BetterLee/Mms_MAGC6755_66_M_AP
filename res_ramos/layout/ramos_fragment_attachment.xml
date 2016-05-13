@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#eceff1"
+    android:orientation="vertical" >
+    
+    <GridView 
+        android:id="@+id/gridview"
+        android:layout_width="match_parent"
+	    android:layout_height="match_parent"
+	    android:stretchMode="columnWidth"
+	    android:gravity="center"
+	    android:numColumns="4"
+	    android:verticalSpacing="17dp"/>
+</RelativeLayout>
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#eceff1"
+    android:orientation="vertical" >
+
+    <com.android.mms.ui.LevelControlLayout
+        android:id="@+id/ramos_share_panel_zone"
+        android:layout_width="fill_parent"
+        android:layout_height="0dip"
+        android:layout_weight="1.0" />
+
+    <RadioGroup
+        android:id="@+id/ramos_rg_share_dot"
+        android:layout_width="fill_parent"
+        android:layout_height="33dip"
+        android:gravity="center"
+        android:orientation="horizontal" >
+
+        <RadioButton
+            android:id="@+id/ramos_rb_dot_first"
+            android:layout_width="6dp"
+            android:layout_height="6dp"
+            android:layout_margin="6dip"
+            android:button="@drawable/radio_selector"
+            android:enabled="false" />
+
+        <RadioButton
+            android:id="@+id/ramos_rb_dot_sec"
+            android:layout_width="6dp"
+            android:layout_height="6dp"
+            android:layout_margin="6dip"
+            android:button="@drawable/radio_selector"
+            android:enabled="false" />
+    </RadioGroup>
+
+</LinearLayout>

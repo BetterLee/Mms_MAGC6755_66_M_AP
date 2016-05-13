@@ -110,6 +110,13 @@ import com.mediatek.internal.telephony.IccSmsStorageStatus;
 import java.util.ArrayList;
 import java.util.Map;
 
+//[ramos] added by liting 20151009
+import android.widget.LinearLayout;
+import android.view.Display;
+import android.view.WindowManager;
+import android.view.WindowManager.LayoutParams;
+import android.text.SpannableStringBuilder;
+//[ramos] end liting
 /**
  * Displays a list of the SMS messages stored on the ICC.
  */
@@ -131,6 +138,15 @@ public class ManageSimMessages extends Activity
     private Cursor mCursor = null;
     private ListView mSimList;
     private TextView mMessage;
+	//[ramos] added by liting 20151009
+    private TextView mCapacity;
+    private TextView mShare;
+    private TextView mDelete;
+    private TextView mCopy;
+    private TextView selection_select;
+    private LinearLayout linearMenu;
+    private TextView returntextview;
+	//[ramos] end liting
     private MessageListAdapter mMsgListAdapter = null;
     private AsyncQueryHandler mQueryHandler = null;
 
@@ -239,16 +255,62 @@ public class ManageSimMessages extends Activity
         // M: add for op
         mOpManageSimMessages = OpMessageUtils.getOpMessagePlugin().getOpManageSimMessagesExt();
         mOpManageSimMessages.onCreate(this, this, mCurrentSubId);
-
-        setContentView(R.layout.sim_list);
+        //[ramos] begin liting
+        //setContentView(R.layout.sim_list);
+        setContentView(R.layout.ramos_sim_list);
+        //[ramos] end liting
         mContentResolver = getContentResolver();
         mQueryHandler = new QueryHandler(mContentResolver, this);
         mSimList = (ListView) findViewById(R.id.messages);
         mMessage = (TextView) findViewById(R.id.empty_message);
-
+		//[ramos] added by liting 20151009
+		linearMenu=(LinearLayout)findViewById(R.id.ramos_sms_manage_menu_list);
+		linearMenu.setVisibility(View.GONE);
+		
+        mCapacity = (TextView) findViewById(R.id.menu_capacity);
+		mCapacity.setVisibility(View.VISIBLE);
+		mCapacity.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+					mCheckMemoryTask = new CheckSimCapacityTask();
+					mCheckMemoryTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                }
+            });
+		mShare = (TextView) findViewById(R.id.menu_sim_share);
+		mShare.setVisibility(View.GONE);
+		mShare.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+					if (mMsgListAdapter.getSelectedNumber() > 0) {
+						forwardSelectedMessage();
+					}
+                }
+            });
+		mDelete = (TextView) findViewById(R.id.menu_sim_delete);
+		mDelete.setVisibility(View.GONE);
+		mDelete.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+					if (mMsgListAdapter.getSelectedNumber() > 0) {
+                        //[ramos] begin liting 20160323
+						//confirmMultiDelete();
+                        confirmMultiDeleteRamos();
+                        //[ramos] end liting
+					}
+                }
+            });
+		mCopy = (TextView) findViewById(R.id.menu_sim_copy);
+		mCopy.setVisibility(View.GONE);
+		mCopy.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+					if (mMsgListAdapter.getSelectedNumber() > 0) {
+						copySelectedToPhoneMemory();
+					}
+                }
+            });
+		//[ramos] end liting
         mActionBar = getActionBar();
         mActionBar.setDisplayHomeAsUpEnabled(true);
-
+		//[ramos] added by liting 20151009
+		setUpActionBarNoDeleteMode();
+		//[ramos] end liting
         /// M: fix bug ALPS00448222, update ListView when contact update
         Contact.addListener(this);
 
@@ -401,8 +463,12 @@ public class ManageSimMessages extends Activity
             // See ComposeMessageActivity for an example.
             mMsgListAdapter.setMsgListItemHandler(mMessageListItemHandler);
             mSimList.setAdapter(mMsgListAdapter);
-            float textSize = MessageUtils.getPreferenceValueFloat(ManageSimMessages.this,
-                    SettingListActivity.TEXT_SIZE, 18);
+			//[ramos] modified by liting 20151021 for BUG0008565 
+            //float textSize = MessageUtils.getPreferenceValueFloat(ManageSimMessages.this,
+            //        SettingListActivity.TEXT_SIZE, 18);
+			float textSize = MessageUtils.getPreferenceValueFloat(ManageSimMessages.this, 
+					SettingListActivity.TEXT_SIZE, 13);
+			//[ramos] end liting 
             setTextSize(textSize);
             mSimList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -425,11 +491,18 @@ public class ManageSimMessages extends Activity
                             updateActionBarText();
                             return;
                         }
+                        //[ramos] added by liting 20151016 for SIM sms manager  -> use onSimMessageListItemClick
+                        //[ramos] begin liting 20160421 for the popupmenu of message linky  -> use onMessageListItemClick
                         mli.onMessageListItemClick();
+                        //mli.onSimMessageListItemClick();
+                        //[ramos] end liting
+                        //[ramos] end liting
                     }
                 }
             });
-            mSimList.setOnCreateContextMenuListener(this);
+			//[ramos] deleted by liting 20151014
+            //mSimList.setOnCreateContextMenuListener(this);
+			//[ramos] end liting
             updateState(SHOW_LIST);
             startManagingCursor(mCursor);
             mMsgListAdapter.initListMap(cursor);
@@ -683,7 +756,10 @@ public class ManageSimMessages extends Activity
 
         /// M: fix bug ALPS00526071, remove "SimCapacity" menuitem in Sim Sms Selection Mode
         boolean isShowMenu = setOptionMenu();
-        return isShowMenu;
+		//[ramos] modified by liting 20151009
+        //return isShowMenu;
+        return false;
+		//[ramos] end liting
     }
 
     private boolean setOptionMenu() {
@@ -707,6 +783,9 @@ public class ManageSimMessages extends Activity
         MenuItem miSimCapacity = mOptionMenu.findItem(OPTION_MENU_SIM_CAPACITY);
         if (miSimCapacity != null) {
             miSimCapacity.setVisible(isShowCapacity);
+			//[ramos] added by liting 20151009
+			mCapacity.setEnabled(isShowCapacity);
+			//[ramos] end liting
         }
 
         return isShowDelectAll || isShowCapacity;
@@ -780,6 +859,9 @@ public class ManageSimMessages extends Activity
                     setTitle(getString(R.string.sim_manage_messages_title));
                 } /// @}
                 dismissDialog(DIALOG_REFRESH);
+                //[ramos] added by liting 20151014
+				linearMenu.setVisibility(View.VISIBLE);
+                //[ramos] end liting
                 break;
             case SHOW_EMPTY:
                 dismissDialog(DIALOG_REFRESH);
@@ -791,12 +873,19 @@ public class ManageSimMessages extends Activity
                 } /// @}
 
                 mMessage.setVisibility(View.VISIBLE);
+				//[ramos] added by liting 20151014
+				mCapacity.setEnabled(false);
+				//[ramos] end liting
                 break;
             case SHOW_BUSY:
                 mSimList.setVisibility(View.GONE);
                 mMessage.setVisibility(View.GONE);
                 setTitle(getString(R.string.refreshing));
                 showDialog(DIALOG_REFRESH);
+                //[ramos] added by liting 20151014
+				setUpActionBarNoDeleteMode();
+				linearMenu.setVisibility(View.GONE);
+                //[ramos] end liting
                 break;
             default:
                 Log.e(TAG, "Invalid State");
@@ -973,7 +1062,10 @@ public class ManageSimMessages extends Activity
         }
     };
 
-
+	//[ramos]added by liting 20151103 for BUG0009713
+	private AlertDialog CapacityDialog;
+	private TextView message;
+	//[ramos]end liting
     @Override
     protected Dialog onCreateDialog(int id, Bundle args) {
         MmsLog.d(TAG, "onCreateDialog id: " +id );
@@ -992,10 +1084,38 @@ public class ManageSimMessages extends Activity
             MmsLog.d(TAG, "onCreateDialog return mDialog: " + mDialog);
             return mDialog;
         } else if (id == DIALOG_CAPACITY && args != null) {
-            return new AlertDialog.Builder(ManageSimMessages.this).setIconAttribute(
+			//[ramos]added by liting 20151103 for BUG0009713
+			AlertDialog.Builder builder = new AlertDialog.Builder(ManageSimMessages.this);
+			CapacityDialog = builder.create();
+			CapacityDialog.show();
+			WindowManager m = (ManageSimMessages.this).getWindowManager();
+			Display d = m.getDefaultDisplay();	
+			LayoutParams layoutParams;
+			layoutParams = CapacityDialog.getWindow().getAttributes();
+			layoutParams.width = getResources().getDimensionPixelSize(R.dimen.ramos_dialog_width);//(int) (d.getWidth());
+			//layoutParams.height = getResources().getDimensionPixelSize(R.dimen.ramos_dialog_height);//(int) (d.getWidth()); delete for BUG0010079
+			CapacityDialog.getWindow().setAttributes(layoutParams); 
+			CapacityDialog.setContentView(R.layout.ramos_dialog_capacity);
+			CapacityDialog.setCancelable(true);
+			CapacityDialog.setCanceledOnTouchOutside(true);
+			TextView title = (TextView) CapacityDialog.findViewById(R.id.title);
+			title.setSingleLine(true);
+			message = (TextView) CapacityDialog.findViewById(R.id.message);
+			message.setText(args.getString(CAPACITY_KEY, ""));
+			Button button = (Button) CapacityDialog.findViewById(R.id.btn_sure);
+			button.setOnClickListener(new View.OnClickListener() {
+		            public void onClick(View v) {
+						CapacityDialog.dismiss();
+		            }
+		        });
+            return CapacityDialog;
+
+/*
+					new AlertDialog.Builder(ManageSimMessages.this).setIconAttribute(
                     android.R.attr.alertDialogIcon).setTitle(R.string.show_icc_sms_capacity_title)
                     .setMessage(args.getString(CAPACITY_KEY, "")).setPositiveButton(
-                            android.R.string.ok, null).setCancelable(true).create();
+                            android.R.string.ok, null).setCancelable(true).create();*/
+		//[ramos]end liting
         }
 
         return null;
@@ -1008,7 +1128,10 @@ public class ManageSimMessages extends Activity
         if(id == DIALOG_CAPACITY && dialog instanceof AlertDialog && args != null) {
             AlertDialog alertDialog = (AlertDialog) dialog;
             alertDialog.setMessage(args.getString(CAPACITY_KEY,""));
-        }
+			//[ramos]added by liting 20151103 for BUG0009713
+			message.setText(args.getString(CAPACITY_KEY, ""));
+			//[ramos]end liting
+        }        
     }
 
     @Override
@@ -1080,20 +1203,31 @@ public class ManageSimMessages extends Activity
 
     private void checkDeleteMode() {
         if (mMsgListAdapter == null) {
+			//[ramos] modified by liting 20151009
+/*
             mActionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_TITLE
                     | ActionBar.DISPLAY_HOME_AS_UP,
                     ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_HOME_AS_UP
                     | ActionBar.DISPLAY_SHOW_TITLE);
+*/					
+			mActionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
+			//[ramos] end liting
             return;
         }
         markCheckedState(false);
         if (mMsgListAdapter.mIsDeleteMode) {
             setUpActionBar();
         } else {
+			//[ramos] modified by liting 20151009
+/*
             mActionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_TITLE
                     | ActionBar.DISPLAY_HOME_AS_UP,
                     ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_HOME_AS_UP
                     | ActionBar.DISPLAY_SHOW_TITLE);
+*/
+			setUpActionBarNoDeleteMode();
+			mActionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
+			//[ramos] end liting
         }
         mSimList.invalidateViews();
     }
@@ -1219,14 +1353,23 @@ public class ManageSimMessages extends Activity
     private ActionBar mActionBar;
     private void setUpActionBar() {
         // for ALPS01831024, add DISPLAY_HOME_AS_UP in delete mode.
+		//[ramos] modified by liting 20151012
+/*
         mActionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_HOME_AS_UP,
                 ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_SHOW_TITLE
                         | ActionBar.DISPLAY_HOME_AS_UP);
-
+*/
+        mActionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
+		//[ramos] end liting		
         CustomMenu customMenu = new CustomMenu(this);
+		//[ramos] modified by liting 20151012
+/*
         View customView = LayoutInflater.from(this).inflate(
                 R.layout.multi_select_simsms_actionbar, null);
-
+*/
+        View customView = LayoutInflater.from(this).inflate(
+                R.layout.ramos_multi_select_simsms_actionbar, null);
+		//[ramos] end liting
         /// M: fix bug ALPS00441681, re-layout for landscape
         mActionBar.setCustomView(customView,
                 new ActionBar.LayoutParams(ActionBar.LayoutParams.MATCH_PARENT,
@@ -1249,7 +1392,7 @@ public class ManageSimMessages extends Activity
             }
         });
 
-        Button cancelSelection = (Button) customView.findViewById(R.id.selection_cancel);
+        TextView cancelSelection = (TextView) customView.findViewById(R.id.selection_cancel);
         cancelSelection.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 cancelDeleteMode();
@@ -1263,19 +1406,65 @@ public class ManageSimMessages extends Activity
                 invalidateOptionsMenu();
                 /// @}
                 if (mMsgListAdapter.getSelectedNumber() > 0) {
-                    confirmMultiDelete();
+                    //[ramos] begin liting 20160323
+                    //confirmMultiDelete();
+                    confirmMultiDeleteRamos();
+                    //[ramos] end liting
                 }
             }
         });
+		//[ramos] added by liting 20151012
+		mActionBarText.setEnabled(false);
+		deleteSelection.setVisibility(View.GONE);
+		selection_select = (TextView) customView.findViewById(R.id.selection_select);
+        selection_select.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+				if (mMsgListAdapter.getCount() == mMsgListAdapter.getSelectedNumber()) {
+					markCheckedState(false);
+				} else {
+					markCheckedState(true);
+				}
+            }
+        });
+		
+		mCapacity.setVisibility(View.GONE);
+		mShare.setVisibility(View.VISIBLE);
+		mDelete.setVisibility(View.VISIBLE);
+		mCopy.setVisibility(View.VISIBLE);
+		//[ramos] end liting
         updateActionBarText();
     }
 
     private void updateActionBarText() {
         if (mMsgListAdapter != null && mActionBarText != null) {
+			//[ramos] added by liting 20151012
+/*
             mActionBarText.setText(getResources().getQuantityString(
                     R.plurals.message_view_selected_message_count,
                     mMsgListAdapter.getSelectedNumber(),
                     mMsgListAdapter.getSelectedNumber()));
+*/
+			if (mMsgListAdapter.getSelectedNumber() == 0) {
+				mActionBarText.setText(R.string.ramos_select);
+				mShare.setEnabled(false);
+				mDelete.setEnabled(false);
+				mCopy.setEnabled(false);
+			} else {
+	            mActionBarText.setText(getResources().getQuantityString(
+	                    R.plurals.message_view_selected_message_count,
+	                    mMsgListAdapter.getSelectedNumber(),
+	                    mMsgListAdapter.getSelectedNumber()));
+				mShare.setEnabled(true);
+				mDelete.setEnabled(true);
+				mCopy.setEnabled(true);
+			}
+			
+			if (mMsgListAdapter.getCount() == mMsgListAdapter.getSelectedNumber()) {
+				selection_select.setText(R.string.not_choose_all);
+			} else {
+				selection_select.setText(R.string.choose_all);
+			}
+			//[ramos] end liting
         }
 
         if (mSelectionItem != null && mMsgListAdapter != null) {
@@ -1395,6 +1584,7 @@ public class ManageSimMessages extends Activity
         } else {
             message = getString(R.string.get_icc_sms_capacity_failed);
         }
+        MmsLog.d("litingnew ", "checkSimCapacity simMemStatus.getTotalCount():  " + simMemStatus.getTotalCount());
         message = mOpManageSimMessages.checkSimCapacity(simMemStatus, message);
         MmsLog.d(TAG, "checkSimCapacity " + message);
         return message;
@@ -1430,8 +1620,233 @@ public class ManageSimMessages extends Activity
         /// @}
         mMsgListAdapter.mIsDeleteMode = false;
         checkDeleteMode();
+		//[ramos] modified by liting 20151009
+/*
         mActionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_TITLE | ActionBar.DISPLAY_HOME_AS_UP,
                 ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_HOME_AS_UP
                 | ActionBar.DISPLAY_SHOW_TITLE);
+*/
+		mActionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
+		//[ramos] end liting
     }
+	
+	//[ramos] added by liting 20151009
+    private void copySelectedToPhoneMemory() {
+
+		int count = mMsgListAdapter.getCount();
+		Map<String, Boolean> simMsgList = mMsgListAdapter.getSimMsgItemList();
+		
+		for (int position = 0; position < count; position++) {
+			Cursor cursor = (Cursor) mMsgListAdapter.getItem(position);
+			String msgIndex = getMsgIndexByCursor(cursor);
+			String[] index = msgIndex.split(";");
+			if ((simMsgList.get(index[0]) != null) && simMsgList.get(index[0])) {
+
+				   final String address = cursor.getString(cursor.getColumnIndexOrThrow("address"));
+				   final String body = cursor.getString(cursor.getColumnIndexOrThrow("body"));
+				   final Long date = cursor.getLong(cursor.getColumnIndexOrThrow("date"));
+				   final String serviceCenter = cursor.getString(cursor.getColumnIndexOrThrow("service_center_address"));
+				   final boolean isIncomingMessage = isIncomingMessage(cursor);
+				   MmsLog.d(MmsApp.TXN_TAG, "\t address \t=" + address);
+				   MmsLog.d(MmsApp.TXN_TAG, "\t body \t=" + body);
+				   MmsLog.d(MmsApp.TXN_TAG, "\t date \t=" + date);
+				   MmsLog.d(MmsApp.TXN_TAG, "\t sc \t=" + serviceCenter);
+				   MmsLog.d(MmsApp.TXN_TAG, "\t isIncoming \t=" + isIncomingMessage);
+				   /// M: fix ALPS01659494,notify user can not save null address message
+				   if (address == null || address.equals("")) {
+					   MmsApp.getToastHandler().sendEmptyMessage(MmsApp.MSG_MMS_CAN_NOT_SAVE);
+					   MmsLog.d(MmsApp.TXN_TAG, "copyToPhoneMemory address is null ,return ");
+					   return;
+					 }
+				   /// @}
+				   new Thread(new Runnable() {
+					   public void run() {
+						   try {
+							   if (isIncomingMessage) {
+								   MmsLog.d(MmsApp.TXN_TAG, "Copy incoming sms to phone");
+								   Telephony.Sms.Inbox.addMessage(
+										   mCurrentSubId, mContentResolver,
+										   address, body, null, serviceCenter,
+										   date, true);
+							   } else {
+								   // / M: outgoing sms has not date info
+								   Long currentTime = System.currentTimeMillis();
+								   MmsLog.d(MmsApp.TXN_TAG, "Copy outgoing sms to phone");
+								   Telephony.Sms.Sent.addMessage(mCurrentSubId,
+										   mContentResolver, address, body, null,
+										   serviceCenter, currentTime);
+							   }
+							   Recycler.getSmsRecycler().deleteOldMessages(
+									   getApplicationContext());
+							   //[ramos] deleted by liting 20151019 for BUG0009076
+							   //MmsApp.getToastHandler().sendEmptyMessage(MmsApp.MSG_DONE);
+							   //[ramos] end liting BUG0009076
+							   MmsWidgetProvider.notifyDatasetChanged(getApplicationContext());
+						   } catch (SQLiteException e) {
+							   SqliteWrapper.checkSQLiteException(getApplicationContext(), e);
+						   }
+					   }
+				   }, "copyToPhoneMemory").start();
+
+		   }
+		}
+		//[ramos] deleted by liting 20151019 for BUG0009076
+		MmsApp.getToastHandler().sendEmptyMessage(MmsApp.MSG_DONE);
+		//[ramos] end liting BUG0009076
+
+	}
+    private void forwardSelectedMessage() {
+
+		int count = mMsgListAdapter.getCount();
+		Map<String, Boolean> simMsgList = mMsgListAdapter.getSimMsgItemList();
+		StringBuilder smsBody = new StringBuilder();
+
+		for (int position = 0; position < count; position++) {
+			Cursor cursor = (Cursor) mMsgListAdapter.getItem(position);
+			String msgIndex = getMsgIndexByCursor(cursor);
+			String[] index = msgIndex.split(";");
+			if ((simMsgList.get(index[0]) != null) && simMsgList.get(index[0])) {
+				mDeletedMessageSet.add(cursor.getLong(cursor
+					   .getColumnIndexOrThrow("_id")));
+				smsBody.append(cursor.getString(cursor.getColumnIndexOrThrow("body")));
+				smsBody.append("\n");
+		   }
+		}
+		
+		SpannableStringBuilder buf = new SpannableStringBuilder(smsBody.toString());
+		int before = buf.length();
+		if( before > 0 ){
+			buf.replace(before - 1, before, "");
+		}
+		
+        Intent intent = new Intent();
+        intent.setClassName(this, "com.android.mms.ui.ForwardMessageActivity");
+        intent.putExtra(ComposeMessageActivity.FORWARD_MESSAGE, true);
+        if (smsBody != null) {
+            intent.putExtra(ComposeMessageActivity.SMS_BODY, buf.toString());
+        }
+        startActivity(intent);
+    }
+
+	
+    private void setUpActionBarNoDeleteMode() {
+		mActionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
+		
+		mActionBar.setCustomView(R.layout.ramos_actionbar);
+		TextView actionbartitle=(TextView)findViewById(R.id.ramos_actionbar_title);
+		actionbartitle.setText(R.string.conversation_list_title);
+		TextView mMultChoiceEdit=(TextView)findViewById(R.id.ramos_edit);
+        //[ramos] begin liting 20160331 for BUG0014529
+        boolean isSimEmpty = false;
+        IccSmsStorageStatus simMemStatus = SmsManager.getSmsManagerForSubscriptionId(
+                mCurrentSubId).getSmsSimMemoryStatus();
+        if (null != simMemStatus) {
+            isSimEmpty = simMemStatus.getUsedCount() == 0;
+        }
+        MmsLog.d(TAG, "isCurrentSimEmpty isEmpty= " + isSimEmpty);
+        if (isSimEmpty) {
+            mMultChoiceEdit.setVisibility(View.GONE);
+        } else {
+            mMultChoiceEdit.setVisibility(View.VISIBLE);
+        }
+        //[ramos] end liting
+		mMultChoiceEdit.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+					mMsgListAdapter.mIsDeleteMode = true;
+					checkDeleteMode();
+                }
+            });
+
+		returntextview=(TextView)findViewById(R.id.preference_return_textview);
+		returntextview.setVisibility(View.VISIBLE);
+		SubscriptionInfo subInfo = SubscriptionManager.from(MmsApp.getApplication())
+				.getActiveSubscriptionInfo(mCurrentSubId);
+		//[ramos] modified by liting 20151112 for BUG0010073
+		if (subInfo != null) {
+			returntextview.setText(subInfo.getDisplayName().toString());
+		}
+		//[ramos] end liting
+
+		LinearLayout linear=(LinearLayout)findViewById(R.id.preference_actionbar_return);
+		linear.setVisibility(View.VISIBLE);
+		linear.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    finish();
+                }
+            });
+
+		mCapacity.setVisibility(View.VISIBLE);
+		mShare.setVisibility(View.GONE);
+		mDelete.setVisibility(View.GONE);
+		mCopy.setVisibility(View.GONE);
+    }
+	//[ramos]end liting
+	//[ramos]added by liting 20150918
+	private void confirmMultiDeleteRamos() {
+		
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		final AlertDialog mDeleteAlertDialog = builder.create();
+		mDeleteAlertDialog.show();
+		mDeleteAlertDialog.setCanceledOnTouchOutside(true);
+		mDeleteAlertDialog.setContentView(R.layout.ramos_dialog_delete);
+		WindowManager m = (ManageSimMessages.this).getWindowManager();
+		Display d = m.getDefaultDisplay();	
+		LayoutParams layoutParams;
+		layoutParams = mDeleteAlertDialog.getWindow().getAttributes();
+		layoutParams.width = getResources().getDimensionPixelSize(R.dimen.ramos_dialog_width);//(int) (d.getWidth());
+		//layoutParams.height = getResources().getDimensionPixelSize(R.dimen.ramos_dialog_height);//(int) (d.getWidth());
+		mDeleteAlertDialog.getWindow().setAttributes(layoutParams); 
+			
+		Button btnLeft = (Button) mDeleteAlertDialog.findViewById(R.id.btn_left);		
+		Button btnRight = (Button) mDeleteAlertDialog.findViewById(R.id.btn_right); 
+		btnLeft.setOnClickListener(new Button.OnClickListener() {
+		
+				@Override
+				public void onClick(View arg0) {
+					// TODO Auto-generated method stub
+					mDeleteAlertDialog.dismiss();
+				}
+		
+		});
+		btnRight.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				mActionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_TITLE | ActionBar.DISPLAY_HOME_AS_UP,
+						ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_TITLE);
+				updateState(SHOW_BUSY);
+				new Thread(new Runnable() {
+					public void run() {
+						int count = mMsgListAdapter.getCount();
+						Map<String, Boolean> simMsgList = mMsgListAdapter.getSimMsgItemList();
+						ArrayList<String> selectedSimIds = new ArrayList<String>();
+						for (int position = 0; position < count; position++) {
+							Cursor cursor = (Cursor) mMsgListAdapter.getItem(position);
+							String msgIndex = getMsgIndexByCursor(cursor);
+							String[] index = msgIndex.split(";");
+							if ((simMsgList.get(index[0]) != null) && simMsgList.get(index[0])) {
+								for (int n = 0; n < index.length; n++) {
+									selectedSimIds.add(index[n]);
+								}
+							mDeletedMessageSet.add(cursor.getLong(cursor
+								   .getColumnIndexOrThrow("_id")));
+						   }
+						}
+						String[] argsSimMsg = selectedSimIds.toArray(new String[selectedSimIds.size()]);
+						/// M: Add for OP09; remove the messages' id which can not deleted. @{
+//						if (MmsConfig.isReadSmsFromDualModelUIMEnable()) {
+//							argsSimMsg = mMmsManageSimMessagePlugin.filterUnoperatedMsgs(argsSimMsg);
+//						}
+						/// @}
+						Log.d(TAG, "confirmMultiDelete startDelete length:" + argsSimMsg.length);
+						mQueryHandler.startDelete(/*DELETE_MESSAGE_TOKEN*/0,
+								argsSimMsg.length, sSimMessageUri, FOR_MULTIDELETE, argsSimMsg);
+						isDeleting = true;
+					}
+				}).start();
+				mMsgListAdapter.mIsDeleteMode = false;
+				mDeleteAlertDialog.dismiss();
+			}
+		});
+	}
+
 }

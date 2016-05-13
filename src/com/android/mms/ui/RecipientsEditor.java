@@ -72,6 +72,10 @@ import com.android.mtkex.chips.RecipientEntry;
 import com.mediatek.mms.callback.IRecipientsEditorCallback;
 import com.mediatek.mms.ext.IOpRecipientsEditorExt;
 import com.mediatek.opmsg.util.OpMessageUtils;
+//[ramos] begin liting
+import android.net.Uri;
+import android.content.Intent;
+//[ramos] end liting
 /**
  * Provide UI for editing the recipients of multi-media messages.
  */
@@ -123,7 +127,10 @@ public class RecipientsEditor extends MTKRecipientEditTextView
         if (!getResources().getBoolean(R.bool.isWVGAScreen)) {
             setMaxLines(3);
         } else {
-            setMaxLines(1);
+            	//[ramos] modified by liting 20151012
+            	//setMaxLines()1;
+                setMaxLines(2);
+				//[ramos] end liting
         }
         mOpRecipientsEditorExt.init(this, getResources().getBoolean(R.bool.isWVGAScreen));
 
@@ -708,6 +715,52 @@ public class RecipientsEditor extends MTKRecipientEditTextView
     /// M:
     @Override
     public void onLongPress(MotionEvent event) {
+    //[ramos] begin liting 20160225
+        Log.d(TAG,"RecipientsEditor:onLongPress");
+        if ((mLongPressedPosition >= 0)) {
+            Spanned text = getText();
+            if (mLongPressedPosition <= text.length() && mIsPointInChip) {
+                /// M: get correct token (end with ", ") while long press a chip.
+                /// i.e. if text is "123456, 891-7823, ", the second token is "891-7823, ". @{
+                int start = mTokenizer.findTokenStart(text, mLongPressedPosition);
+                int end = Math.min(mTokenizer.findTokenEnd(text, start) + 1, text.length());
+                boolean isPressedContact = false;
+                if (end != start && (mLongPressedPosition <= end && mLongPressedPosition >= start)) {
+                    isPressedContact = true;
+                } else if (mLongPressedPosition < start || mLongPressedPosition > end) {
+                    end = Math.min(mTokenizer.findTokenEnd(text, mLongPressedPosition) + 1, text.length());
+                    start = mTokenizer.findTokenStart(text, end);
+                    if (end != start && (mLongPressedPosition <= end && mLongPressedPosition >= start)) {
+                        isPressedContact = true;
+                    }
+                }
+                /// @}
+                if (isPressedContact) {
+                    String number = getNumberAt(getText(), start, end, getContext());
+                    Contact c = Contact.get(number, true);
+                    /// M: Recipient Control refactory, get contact info from framework. @{
+                    RecipientEntry recipient = getRecipientEntry(mChipX, mChipY);
+                    if (recipient != null) {
+                        String name = recipient.getDisplayName().toString();
+                        String reNumber = recipient.getDestination();
+                        reNumber = PhoneNumberUtils.replaceUnicodeDigits(reNumber);
+                        long personId = recipient.getContactId();
+                        if ((personId < 0 && name != null && name.equals(reNumber)) || personId == -2) {
+                            name = "";
+                        }
+                        byte[] data = recipient.getPhotoBytes();
+                        c.setContactInfoFormChipWatcher(name, reNumber, personId, data);
+                    }
+                    /// @}
+                    setEnableDiscardNextActionUp(true);
+                    Uri contactUri = c.getUri();
+                    Intent intent = new Intent(Intent.ACTION_VIEW, contactUri);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+                    getContext().startActivity(intent);
+                }
+            }
+        }
+        //[ramos] end liting
     }
 
     /** M: this method is added for ComposeMessageActivity's updateTitle

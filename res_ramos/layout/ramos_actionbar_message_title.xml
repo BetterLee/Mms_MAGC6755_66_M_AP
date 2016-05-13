@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_vertical">
+
+    <LinearLayout 
+        android:id="@+id/preference_actionbar_return"
+        android:layout_alignParentLeft="true"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:gravity="center">
+    
+        <ImageView 
+            android:id="@+id/preference_return_imageview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="8dip"
+            android:layout_alignParentLeft="true"
+            android:src="@drawable/ramos_actionbar_return"/>
+		    
+        <TextView 
+            android:id="@+id/preference_return_textview"
+            android:layout_toRightOf="@id/preference_return_imageview"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:singleLine="true"
+            android:textSize="@dimen/ramos_actionbar_text"
+            android:textColor="@color/actionbar_back_title"
+            android:layout_marginRight="8dip"
+            android:visibility="invisible"/>
+    
+    </LinearLayout>
+    
+    <LinearLayout
+        android:layout_width="220dip"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:layout_centerInParent="true"
+        android:layout_centerHorizontal="true"
+        android:orientation="vertical" >
+        
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center_vertical"
+            android:orientation="horizontal" >
+            <TextView
+                android:id="@+id/tv_top_title"
+                android:layout_width="0dip"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.0"
+                android:singleLine="true"
+                android:requiresFadingEdge="horizontal"
+                android:ellipsize="end"
+                android:textColor="#ff505050"
+                android:textSize="16sp" />
+            <ImageView
+                android:id="@+id/iv_full_integrated"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="4dip"
+                android:visibility="gone"/>
+            <ImageView
+                android:id="@+id/iv_silent"
+                android:layout_width="16dip"
+                android:layout_height="16dip"
+                android:layout_marginLeft="4dip"
+                android:visibility="invisible"
+                android:src="@drawable/ipmsg_actionbar_silent" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_top_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:requiresFadingEdge="horizontal"
+            android:ellipsize="none"
+            android:textColor="#ff969696"
+            android:textSize="13sp"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+    </LinearLayout>
+    
+    <TextView
+        android:id="@+id/tv_edit"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="center_vertical"
+        android:gravity="center_vertical"
+        android:textColor="@color/ramos_dialog_button"
+        android:textSize="@dimen/ramos_actionbar_text"
+        android:layout_marginRight="16dip"
+        android:layout_alignParentRight="true"
+        android:text="@string/edit" />
+</RelativeLayout>

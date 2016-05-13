@@ -64,6 +64,13 @@ import com.mediatek.telephony.TelephonyManagerEx;
 import java.util.List;
 
 import android.telephony.SubscriptionInfo;
+//[ramos]added by liting 20150929
+import android.view.View;
+import android.widget.TextView;
+import android.widget.LinearLayout;
+import android.preference.SwitchPreference;
+import android.provider.Settings;
+//[ramos]end liting
 /**
  * With this activity, users can set preferences for MMS and SMS and can access
  * and manipulate SMS messages stored on the SIM.
@@ -114,7 +121,10 @@ public class SmsPreferenceActivity extends PreferenceActivity implements
 
     // MTK_OP01_PROTECT_END
     // all preferences need change key for single sim card
-    private CheckBoxPreference mSmsDeliveryReport;
+    //[ramos] modified by liting 20150929
+    //private CheckBoxPreference mSmsDeliveryReport;
+    private SwitchPreference mSmsDeliveryReport;
+	//[ramos] end liting
 
     private CheckBoxPreference mSmsForwardWithSender;
 
@@ -205,6 +215,23 @@ public class SmsPreferenceActivity extends PreferenceActivity implements
         ActionBar actionBar = getActionBar();
         actionBar.setTitle(getResources().getString(R.string.actionbar_sms_setting));
         actionBar.setDisplayHomeAsUpEnabled(true);
+//[ramos]modified by liting 20150918
+		actionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
+		actionBar.setCustomView(R.layout.ramos_actionbar);
+        TextView actionbartitle=(TextView)findViewById(R.id.ramos_actionbar_title);
+        actionbartitle.setText(R.string.actionbar_sms_setting);
+        
+    	TextView returntextview=(TextView)findViewById(R.id.preference_return_textview);
+    	returntextview.setText(R.string.set);
+    	returntextview.setVisibility(View.VISIBLE);
+    	LinearLayout linear=(LinearLayout)findViewById(R.id.preference_actionbar_return);
+    	linear.setVisibility(View.VISIBLE);
+		linear.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    finish();
+                }
+            });
+//[ramos]end liting
         setMessagePreferences();
         SimStateMonitor.getInstance().addListener(this);
     }
@@ -221,9 +248,15 @@ public class SmsPreferenceActivity extends PreferenceActivity implements
         MmsLog.d(TAG, "SubCount is :" + SimStateMonitor.getInstance().getSubCount());
 
         if (SimStateMonitor.getInstance().getSubCount() <= 1) {
-            addPreferencesFromResource(R.xml.smspreferences);
+            //[ramos] begin liting 20160317
+            //addPreferencesFromResource(R.xml.smspreferences);
+            addPreferencesFromResource(R.xml.ramos_smspreferences);
+            //[ramos] end liting
         } else {
-            addPreferencesFromResource(R.xml.smsmulticardpreferences);
+            //[ramos] modified by liting 20150929 CheckBoxPreference -> SwitchPreference
+            //addPreferencesFromResource(R.xml.smsmulticardpreferences);
+            addPreferencesFromResource(R.xml.ramos_smsmulticardpreferences);
+            //[ramos] end liting
         }
         mSmsLocation = (ListPreference) findPreference(SMS_SAVE_LOCATION);
         mSmsLocation.setOnPreferenceChangeListener(this);
@@ -231,19 +264,28 @@ public class SmsPreferenceActivity extends PreferenceActivity implements
         ///M: do not show sim messages when sim is off. @{
         PreferenceCategory smsCategory = (PreferenceCategory) findPreference(SMS_SETTINGS);
         mManageSimPref = findPreference(SMS_MANAGE_SIM_MESSAGES);
-        if (!MessageUtils.isSimMessageAccessable(this)) {
+//[ramos] modified by liting 20151009 for BUG0008337
+		//if (!MessageUtils.isSimMessageAccessable(this))
+		if (SimStateMonitor.getInstance().getSubCount() <= 1 && (!MessageUtils.isSimMessageAccessable(this) ||currentSimState() == false)) {
+//[ramos]end liting
             // If there is no SIM, this item will be disabled and can not be
             // accessed.
             mManageSimPref.setEnabled(false);
         }
         /// @}
-
+//[ramos]added by liting 20150923
+		smsCategory.removePreference(mSmsQuickTextEditorPref);
+//[ramos]end liting
         if (SimStateMonitor.getInstance().getSubCount() <= 1) {
             mSmsServiceCenterPref = findPreference(SMS_SERVICE_CENTER);
 
             // MTK_OP02_PROTECT_END
-            if (SimStateMonitor.getInstance().getSubCount() == 0) {
-                mSmsDeliveryReport = (CheckBoxPreference) findPreference(SMS_DELIVERY_REPORT_MODE);
+//[ramos] modified by liting 20151009 for BUG0008337
+            //if (SimStateMonitor.getInstance().getSubCount() == 0) {
+            //    mSmsDeliveryReport = (CheckBoxPreference) findPreference(SMS_DELIVERY_REPORT_MODE);
+            if (SimStateMonitor.getInstance().getSubCount() == 0 || currentSimState() == false) {
+                mSmsDeliveryReport = (SwitchPreference) findPreference(SMS_DELIVERY_REPORT_MODE);
+//[ramos] end liting
                 mSmsDeliveryReport.setEnabled(false);
                 mSmsServiceCenterPref.setEnabled(false);
                 // / M: fix bug ALPS00455172, add tablet "device" support
@@ -293,7 +335,10 @@ public class SmsPreferenceActivity extends PreferenceActivity implements
         int subId = singleCardInfo.getSubscriptionId();
         MmsLog.d(TAG, "changeSingleCardKeyToSimRelated Got simId = " + subId);
         // translate all key to SIM-related key;
-        mSmsDeliveryReport = (CheckBoxPreference) findPreference(SMS_DELIVERY_REPORT_MODE);
+		//[ramos] modified by liting 20150929
+		//mSmsDeliveryReport = (CheckBoxPreference) findPreference(SMS_DELIVERY_REPORT_MODE);
+		mSmsDeliveryReport = (SwitchPreference) findPreference(SMS_DELIVERY_REPORT_MODE);
+		//[ramos] end liting
         mSmsServiceCenterPref = findPreference(SMS_SERVICE_CENTER);
         mManageSimPref = findPreference(SMS_MANAGE_SIM_MESSAGES);
 
@@ -351,7 +396,9 @@ public class SmsPreferenceActivity extends PreferenceActivity implements
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         menu.clear();
-        menu.add(0, MENU_RESTORE_DEFAULTS, 0, R.string.restore_default);
+		//[ramos]added by liting 20150923
+		//menu.add(0, MENU_RESTORE_DEFAULTS, 0, R.string.restore_default);
+		//[ramos]end liting
         return true;
     }
 
@@ -587,5 +634,20 @@ public class SmsPreferenceActivity extends PreferenceActivity implements
         setMessagePreferences();
         setListPrefSummary();
     }
+	
+	//[ramos] added by liting 20151009 for BUG0008337
+    private static final int MODE_PHONE1_ONLY = 1;
+	private boolean currentSimState() {
+		int currentSimMode = Settings.System.getInt(this.getContentResolver(),
+				Settings.System.MSIM_MODE_SETTING, -1);
+        if (SimStateMonitor.getInstance().getSubCount() == 0) {
+            return false;
+        }
+		boolean radiosState = ((currentSimMode & (MODE_PHONE1_ONLY << SimStateMonitor.getInstance().getSubInfoList().get(0).getSimSlotIndex())) == 0) ?
+				false : true;
+        
+		return radiosState;
+	}
+	//[ramos] end liting 
 
 }

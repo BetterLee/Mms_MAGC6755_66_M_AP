@@ -151,6 +151,11 @@ public class StatusBarSelectorCreator {
     private boolean shouldAlwaysAskSelected() {
         List<SubscriptionInfo> list = SubscriptionManager.from(MmsApp.getApplication())
                 .getActiveSubscriptionInfoList();
+		//[ramos] added by shuyong in flight mode 20151228 begin
+		if(null == list){
+			return true;
+		}
+		//[ramos] end
         int defaultSubId = SubscriptionManager.getDefaultSmsSubId();
         if (list == null) {
             return false;

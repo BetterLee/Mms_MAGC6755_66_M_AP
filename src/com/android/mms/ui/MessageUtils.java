@@ -200,6 +200,17 @@ import android.app.AlertDialog.Builder;
 import com.mediatek.setting.NotificationPreferenceActivity;
 import com.mediatek.setting.SmsPreferenceActivity;
 import com.mediatek.storage.StorageManagerEx;
+//[ramos] added by liting 20151015
+import android.view.WindowManager.LayoutParams;
+import android.view.View;
+import android.widget.TextView;
+import android.widget.ImageView;
+import android.widget.Button;
+import com.android.i18n.phonenumbers.geocoding.PhoneNumberOfflineGeocoder;
+import com.android.i18n.phonenumbers.NumberParseException;
+import com.android.i18n.phonenumbers.PhoneNumberUtil;
+import com.android.i18n.phonenumbers.Phonenumber.PhoneNumber;
+//[ramos] end liting
 
 /**
  * An utility class for managing messages.
@@ -213,7 +224,9 @@ public class MessageUtils {
 
     private static String sLocalNumber;
     private static String[] sNoSubjectStrings;
-
+	//[ramos] added by liting 20151015
+    private static AlertDialog mDiscardDialog;
+	//[ramos] end liting
     // Cache of both groups of space-separated ids to their full
     // comma-separated display names, as well as individual ids to
     // display names.
@@ -952,6 +965,12 @@ public class MessageUtils {
             MmsLog.e(TAG, "viewSimpleSildeshow. Uri:" + mm.getUri());
             MmsLog.e(TAG, "viewSimpleSildeshow. contentType:" + contentType);
             intent.setDataAndType(mm.getUri(), contentType);
+            //[ramos] begin liting 20160418 for BUG0015067
+            Log.d(TAG,"mm.isVideo() : "+mm.isVideo());
+            if (mm.isVideo()) {
+                intent.setPackage("com.android.gallery3d");
+            }
+            //[ramos] end liting
         }
         /// M: Code analyze 013, For fix bug ALPS00250939, Exception/Java(JE)-->com.android.mms.
         try {
@@ -1121,18 +1140,55 @@ public class MessageUtils {
     }
 
     /// @}
+	//[ramos]modified by liting 20151015
     public static void showDiscardDraftConfirmDialog(Context context,
-            OnClickListener listener) {
-        new AlertDialog.Builder(context)
+            final OnClickListener listener) {
+	//[ramos] end liting
+		//[ramos]added by liting 20151015
+        //new AlertDialog.Builder(context)
                 /// M: Code analyze 008, new feature, Android4.1 has moved this
                 // icon and title. @{
-                .setIconAttribute(android.R.attr.alertDialogIcon)
-                .setTitle(R.string.discard_message)
+        //        .setIconAttribute(android.R.attr.alertDialogIcon)
+        //        .setTitle(R.string.discard_message)
                 /// @}
-                .setMessage(R.string.discard_message_reason)
-                .setPositiveButton(R.string.yes, listener)
-                .setNegativeButton(R.string.no, null)
-                .show();
+        //        .setMessage(R.string.discard_message_reason)
+        //        .setPositiveButton(R.string.yes, listener)
+        //        .setNegativeButton(R.string.no, null)
+        //        .show();
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+
+        mDiscardDialog = builder.create();
+		mDiscardDialog.show();
+		LayoutParams layoutParams;
+		layoutParams = mDiscardDialog.getWindow().getAttributes();
+		layoutParams.width = context.getResources().getDimensionPixelSize(R.dimen.ramos_dialog_width);//(int) (d.getWidth());
+		//layoutParams.height = context.getResources().getDimensionPixelSize(R.dimen.ramos_dialog_height);//(int) (d.getWidth());
+		mDiscardDialog.getWindow().setAttributes(layoutParams); 
+		mDiscardDialog.setContentView(R.layout.ramos_dialog_delete);
+		mDiscardDialog.setCancelable(true);
+		mDiscardDialog.setCanceledOnTouchOutside(true);
+		TextView title = (TextView) mDiscardDialog.findViewById(R.id.title);
+		title.setSingleLine(true);
+		title.setText(R.string.discard_message);
+		TextView message = (TextView) mDiscardDialog.findViewById(R.id.message);
+		message.setText(R.string.discard_message_reason);
+		Button btnLeft = (Button) mDiscardDialog.findViewById(R.id.btn_left);
+		btnLeft.setText(R.string.no);
+		btnLeft.setOnClickListener(new View.OnClickListener() {
+				public void onClick(View v) {
+					mDiscardDialog.dismiss();
+				}
+			});
+		Button btnRight = (Button) mDiscardDialog.findViewById(R.id.btn_right);
+		btnRight.setText(R.string.yes);
+		btnRight.setOnClickListener(new View.OnClickListener() {
+				public void onClick(View v) {
+					listener.onClick(mDiscardDialog, 0);
+				}
+			});
+		//[ramos] end liting
+		
     }
 
     /// M: we[mtk] do not support reply read report when deleteing without read.
@@ -1662,6 +1718,59 @@ public class MessageUtils {
             subView.setTextColor(textColor);
             subView.setText(subName);
         }
+    }
+
+    //[ramos] begin liting 20160328
+    public static void setSubIconAndLabel(int subId, String subName, TextView subView, ImageView simCard) {
+        Log.i(TAG, "setSubIconAndLabel subId=" + subId);
+        int textColor = 0;
+        if (subView == null) {
+            return;
+        }
+        int activeSubCount = SubscriptionManager.from(MmsApp.getApplication())
+                .getActiveSubscriptionInfoCount();
+        SubscriptionInfo subInfo = SubscriptionManager.from(MmsApp.getApplication())
+                .getActiveSubscriptionInfo(subId);
+
+        Log.i(TAG, "subInfo=" + subInfo);
+        if (null != subInfo) {
+            if ((subInfo.getSimSlotIndex() == SubscriptionManager.SIM_NOT_INSERTED)
+                    || (subInfo.getSimSlotIndex() == SubscriptionManager.INVALID_SUBSCRIPTION_ID)) {
+				if (subInfo.getSimSlotIndex() == SubscriptionManager.SIM_NOT_INSERTED) {
+					simCard.setVisibility(View.GONE);
+				} else if (subInfo.getSimSlotIndex() == SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+					simCard.setVisibility(View.VISIBLE);
+					simCard.setImageResource(R.drawable.sms_icon_null);
+				}
+                Log.i(TAG, "current not insert sim card");
+            } else {
+                subName = subInfo.getDisplayName().toString();
+                textColor = subInfo.getIconTint();
+                if (subInfo.getSimSlotIndex() == 0) {
+                    simCard.setImageResource(R.drawable.sms_icon_sim1);
+                } else if (subInfo.getSimSlotIndex() == 1){
+                    simCard.setImageResource(R.drawable.sms_icon_sim2);
+                }
+                simCard.setVisibility(View.VISIBLE);
+            }
+        } else {
+            if (activeSubCount >= 1) {
+                simCard.setVisibility(View.VISIBLE);
+                simCard.setImageResource(R.drawable.sms_icon_null);
+            } else {
+                simCard.setVisibility(View.GONE);
+            }
+            Log.i(TAG, "subInfo is null ");
+        }
+
+        if (subName == null || activeSubCount <= 1) {
+            subView.setVisibility(View.GONE);
+        } else {
+            subView.setVisibility(View.GONE);
+            subView.setTextColor(textColor);
+            subView.setText(subName);
+        }
+        
     }
 
     public static void addNumberOrEmailtoContact(final String numberOrEmail, final int REQUEST_CODE,
@@ -3328,10 +3437,85 @@ public class MessageUtils {
     public static String getShortTimeString(Context context, long time) {
         int formatFlags = DateUtils.FORMAT_NO_NOON_MIDNIGHT | DateUtils.FORMAT_CAP_AMPM;
         formatFlags |= DateUtils.FORMAT_SHOW_TIME;
+        //[ramos] modified by liting 20151212 for BUG0011463
+        //sreturn DateUtils.formatDateTime(context, time, formatFlags);
+        return getShortTimeStringRamos(context, time);
+        //[ramos] end liting
+    }
+    //[ramos] modified by liting 20151212 for BUG0011463
+    public static String getShortTimeStringRamos(Context context, long time) {
+        Time then = new Time();
+        then.set(time);
+        Time now = new Time();
+        now.setToNow();
+
+        int formatFlags = DateUtils.FORMAT_NO_NOON_MIDNIGHT | DateUtils.FORMAT_ABBREV_ALL
+                | DateUtils.FORMAT_CAP_AMPM;
+        
+        if (then.year != now.year) {
+            formatFlags |= DateUtils.FORMAT_SHOW_YEAR | DateUtils.FORMAT_SHOW_DATE;
+        } else {
+            formatFlags |= DateUtils.FORMAT_SHOW_DATE;
+            Date curDate = new Date();
+            Date cur = new Date(curDate.getYear(), curDate.getMonth(), curDate.getDate(), 0, 0, 0);
+            long oneWeek = 7 * 24 * 60 * 60 * 1000;
+            long elapsedTime = cur.getTime() - time;
+            if (elapsedTime < oneWeek) {
+                formatFlags |= DateUtils.FORMAT_SHOW_WEEKDAY; 
+            }
+            formatFlags |= DateUtils.FORMAT_SHOW_TIME;
+        }
         return DateUtils.formatDateTime(context, time, formatFlags);
 
     }
 
+    public static String getNumberLocation(Context context, String number) {
+        
+        PhoneNumberUtil util = PhoneNumberUtil.getInstance();
+        PhoneNumberOfflineGeocoder geocoder = PhoneNumberOfflineGeocoder.getInstance();
+    
+        Locale locale = context.getResources().getConfiguration().locale;
+        String countryIso = getCurrentCountryIso(context, locale);
+        PhoneNumber pn = null;
+        try {
+            Log.d(TAG, "parsing '" + number
+                            + "' for countryIso '" + countryIso + "'...");
+            pn = util.parse(number, countryIso);
+            Log.d(TAG, "- parsed number: " + pn);
+        } catch (NumberParseException e) {
+            Log.d(TAG, "getGeoDescription: NumberParseException for incoming number '" + number + "'");
+        }
+    
+        if (pn != null) {
+            String description = geocoder.getDescriptionForNumber(pn, locale);
+            Log.d(TAG, "- got description: '" + description + "'");
+            return description;
+        } else {
+            return null;
+        }
+    }
+    
+    private static String getCurrentCountryIso(Context context, Locale locale) {
+        String countryIso = null;
+        CountryDetector detector = (CountryDetector) context.getSystemService(
+                Context.COUNTRY_DETECTOR);
+        if (detector != null) {
+            Country country = detector.detectCountry();
+            if (country != null) {
+                countryIso = country.getCountryIso();
+            } else {
+                Log.d(TAG, "CountryDetector.detectCountry() returned null.");
+            }
+        }
+        if (countryIso == null) {
+            countryIso = locale.getCountry();
+            Log.d(TAG, "No CountryDetector; falling back to countryIso based on locale: "
+                    + countryIso);
+        }
+        return countryIso;
+    }
+
+    //[ramos] end liting
     public static String unescapeXML(String str) {
         return str.replaceAll("&lt;", "<")
                 .replaceAll("&gt;", ">")

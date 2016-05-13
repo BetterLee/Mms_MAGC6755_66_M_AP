@@ -21,10 +21,10 @@ LOCAL_JAVA_LIBRARIES += telephony-common
 LOCAL_JAVA_LIBRARIES += mediatek-framework
 LOCAL_JAVA_LIBRARIES += org.apache.http.legacy.boot
 LOCAL_STATIC_JAVA_LIBRARIES += android-common-chips
-LOCAL_STATIC_JAVA_LIBRARIES += com.mediatek.mms.callback
+LOCAL_STATIC_JAVA_LIBRARIES += com.mediatek.mms.ramoscallback
 #LOCAL_JAVA_LIBRARIES += mediatek-telephony-common
 LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := com.mediatek.mms.ext
+LOCAL_MODULE := com.mediatek.mms.ramosext
 
 LOCAL_SRC_FILES := $(call all-java-files-under, src)
 

@@ -77,7 +77,9 @@ import android.graphics.Bitmap;
 import com.android.mms.util.MmsLog;
 
 import java.lang.ref.SoftReference;
-
+//[ramos] begin liting
+import java.util.Calendar;
+//[ramos] end liting
 
 /**
  * Mostly immutable model for an SMS/MMS message.
@@ -165,6 +167,10 @@ public class MessageItem implements IMessageItemCallback {
     public IIpMessageItemExt mIpMessageItem;
 
     public IOpMessageItemExt mOpMessageItemExt;
+	//[ramos] added by liting 20151110 for BUG0008316
+	boolean mIsTimer;
+	public static final int MESSAGE_TYPE_TIMER = 7;
+	//[ramos] end liting
 
     // M:for ALPS01065027,just for compose sms messagelist in scrolling
     MessageItem(Context context, ColumnsMap columnsMap, Cursor cursor) throws MmsException {
@@ -457,7 +463,12 @@ public class MessageItem implements IMessageItemCallback {
             if (mSubMsg) {
                 /// M: if the sms's body is null, just do not show it.for 547338 @{
                 String tempBody = cursor.getString(columnsMap.mColumnSmsBody);
+				//[ramos] added by liting 20151016 for SIM sms manager 
+/*
                 mBody = mContact + " : " + (tempBody != null ? tempBody : "");
+*/
+                mBody = (tempBody != null ? tempBody : "");
+				//[ramos] end liting
                 /// @}
             } else {
                 mBody = cursor.getString(columnsMap.mColumnSmsBody);
@@ -490,7 +501,15 @@ public class MessageItem implements IMessageItemCallback {
                         mTimestamp = MessageUtils.getShortTimeString(context, date);
                     }
                 } else {
-                    mTimestamp = "";
+                	//[ramos] modified by liting 20151108 for BUG0009860 & BUG0010167
+					//mTimestamp = "";
+                    if (isSentMessage()) {
+                        mTimestamp = String.format(context.getString(R.string.sent_on),
+                                MessageUtils.formatTimeStampString(context, Calendar.getInstance().getTimeInMillis()));//String.format(context.getString(R.string.sent_on_unknown));
+					} else {
+	                    mTimestamp = "";
+					}
+					//[ramos] end liting 
                 }
             }
             if (mIsDrawTimeDivider) {

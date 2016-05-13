@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.android.mms.ramos.RamosBottomPanel xmlns:android="http://schemas.android.com/apk/res/android"    
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/panel_back"
+    android:orientation="vertical" 
+    android:visibility="gone">
+    <FrameLayout
+        android:id="@+id/content"
+        android:layout_width="match_parent"
+        android:layout_height="233dip" >           
+    </FrameLayout>
+    <RadioGroup android:id="@+id/tabs"
+        android:layout_width="match_parent"
+        android:layout_height="50dip"
+        android:background="@color/white"
+        android:orientation="horizontal">        
+        <RadioButton
+            android:id="@+id/tab_face" 
+            style="@style/RadioButtonStyle"
+            android:drawableTop="@drawable/ramos_radio_btn_face_selector"
+            android:text="@string/face"/>
+        <RadioButton
+            android:id="@+id/tab_attachment" 
+            style="@style/RadioButtonStyle"
+            android:drawableTop="@drawable/ramos_radio_btn_attach_selector"
+            android:text="@string/attachment"/>
+        <RadioButton
+            android:id="@+id/tab_quick_reply" 
+           	style="@style/RadioButtonStyle"
+           	android:drawableTop="@drawable/ramos_radio_btn_reply_selector"
+            android:text="@string/quick_reply"/>            
+     </RadioGroup>
+</com.android.mms.ramos.RamosBottomPanel>

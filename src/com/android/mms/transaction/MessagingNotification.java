@@ -128,6 +128,20 @@ import com.android.mms.util.FeatureOption;
 
 import java.util.List;
 import android.graphics.drawable.Drawable;
+//[ramos] added by liting 20151104 for BUG0008357
+import android.telephony.SubscriptionManager;
+import android.telephony.SubscriptionInfo;
+import android.util.Log;
+import android.text.style.ImageSpan;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+import com.android.mms.MmsApp;
+//[ramos] end liting
+//[ramos]_START: Add by yuyongjun at 20151228 : Type that refers to sounds that are used for received a sms.	
+import com.mediatek.audioprofile.AudioProfileManager;
+import android.os.Vibrator;
+//[ramos]_END: Add by yuyongjun at 20151228
+
 /**
  * This class is used to update the notification indicator. It will check whether
  * there are unread messages. If yes, it would show the notification indicator,
@@ -148,14 +162,28 @@ public class MessagingNotification {
     private static final float IN_CONVERSATION_NOTIFICATION_VOLUME = 0.25f;
 
     // This must be consistent with the column constants below.
+	//[ramos] added by liting 20151104 for BUG0008357
+/*
     private static final String[] MMS_STATUS_PROJECTION = new String[] {
         Mms.THREAD_ID, Mms.DATE, Mms._ID, Mms.SUBJECT, Mms.SUBJECT_CHARSET };
+*/
+	private static final String[] MMS_STATUS_PROJECTION = new String[] {
+		Mms.THREAD_ID, Mms.DATE, Mms._ID, Mms.SUBJECT, Mms.SUBJECT_CHARSET, Mms.SUBSCRIPTION_ID };
+	//[ramos] end liting
 
     /// M:Code analyze 001, add a column for msim @{
     // This must be consistent with the column constants below.
+	//[ramos] added by liting 20151104 for BUG0008357
+/*
     private static final String[] SMS_STATUS_PROJECTION = new String[] {
         Sms.THREAD_ID, Sms.DATE, Sms.ADDRESS, Sms.SUBJECT, Sms.BODY, Sms._ID, Sms.IPMSG_ID
     };
+*/
+    private static final String[] SMS_STATUS_PROJECTION = new String[] {
+        Sms.THREAD_ID, Sms.DATE, Sms.ADDRESS, Sms.SUBJECT, Sms.BODY, Sms._ID,
+        Sms.IPMSG_ID, Sms.SUBSCRIPTION_ID
+    };
+	//[ramos] end liting
     /// @}
 
     // These must be consistent with MMS_STATUS_PROJECTION and
@@ -405,7 +433,17 @@ public class MessagingNotification {
                             " but playing soft sound. threadId: " + newMsgThreadId);
                 }
                 if (!isContinuousComming) {
+                    //[ramos] begin by liting 20160302
+/*
                     playInConversationNotificationSound(context, notiProf);
+*/
+                    int subId = Conversation.ConvSubIdCallBack(context, newMsgThreadId);
+					if (MmsApp.isDualRingtone) {
+                    	playInConversationNotificationSound(context, notiProf, subId);
+					} else {
+						playInConversationNotificationSound(context, notiProf);
+					}
+                    //[ramos] end liting
                     sLastNotificationTime = currentTime;
                 }
                 return;
@@ -463,7 +501,12 @@ public class MessagingNotification {
             return;
         }
         ringtoneStr = checkRingtone(context, ringtoneStr);
+        //[ramos] begin by liting 20160226 for After add dual ringtone function, FATAL EXCEPTION:NullPointerException when receive or send sms in the conversation activity
+/*
         Uri ringtoneUri = Uri.parse(ringtoneStr);
+*/
+        Uri ringtoneUri = TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr);
+        //[ramos] end liting
 
         /// M: Save NotificationPlayer instance so that we can stop it when composer is pausing
         synchronized (sPlayingInConversationSoundLock) {
@@ -476,7 +519,54 @@ public class MessagingNotification {
         }
         /// @}
     }
+    //[ramos] begin by liting 20160302 
+    private static void playInConversationNotificationSound(Context context, NotificationProfile notiProf, int subId) {
+        //SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
+        //String ringtoneStr = sp.getString(NotificationPreferenceActivity.NOTIFICATION_RINGTONE,
+        //        null);
+        String ringtoneStr = notiProf.getRingtoneStr();
+        if (notiProf.needMute() || TextUtils.isEmpty(ringtoneStr)) {
+            // Nothing to play
+            return;
+        }
+        //[ramos]_START: Add by yuyongjun at 20151228 : Type that refers to sounds that are used for received a sms.        
+        if(ringtoneStr != null){
+            AudioProfileManager mProfileManager = (AudioProfileManager) context
+                .getSystemService(Context.AUDIO_PROFILE_SERVICE);
+            int SlotId_SIM1 = SubscriptionManager.getSlotId(subId);
+            Uri uri = mProfileManager.getRingtoneUri(AudioProfileManager.TYPE_RECEIVED_SMS, subId);
+            if(uri != null){
+                //Log.d("yu_incall", "updateNotification getRingtoneUri=" + ringtoneStr);
+                ringtoneStr = uri.toString();
+            }
+        }
+        //[ramos]_END: Add by yuyongjun at 20151228 
+        ringtoneStr = checkRingtone(context, ringtoneStr);
+        Log.d("litingnew","playInConversationNotificationSound-ringtoneStr: " +ringtoneStr);
+        //[ramos] begin by liting 20160226 for After add dual ringtone function, FATAL EXCEPTION:NullPointerException when receive or send sms in the conversation activity
+        //Uri ringtoneUri = Uri.parse(ringtoneStr);
+        Uri ringtoneUri = TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr);
+        //[ramos] end liting
 
+        /// M: Save NotificationPlayer instance so that we can stop it when composer is pausing
+        synchronized (sPlayingInConversationSoundLock) {
+            if (sNotificationPlayer == null) {
+                sNotificationPlayer = new NotificationPlayer(LogTag.APP);
+            }
+            sNotificationPlayer.stop();
+            sNotificationPlayer.play(context, ringtoneUri, false, AudioManager.STREAM_NOTIFICATION,
+                    IN_CONVERSATION_NOTIFICATION_VOLUME);
+            //[ramos] begin liting 20160407 for android6.0 no conversation virbrate because of  it has cancelled getNotificationProfileByThreadId 
+            if (notiProf.needVibrate()) {
+                Vibrator vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);  
+                long [] pattern = {100,400,100,400};  
+                vibrator.vibrate(pattern,-1); 
+            }
+            //[ramos] end liting	
+        }
+        /// @}
+    }
+    //[ramos] end liting
     /**
      * Updates all pending notifications, clearing or updating them as
      * necessary.
@@ -558,6 +648,9 @@ public class MessagingNotification {
         /// M:Code analyze 007,add for storing the uri of sms or mms @{
         public Uri mUri;
         /// @}
+		//[ramos] added by liting 20151104 for BUG0008357
+		public final int mSubId;
+		//[ramos] end liting
 
         /**
          * @param isSms true if sms, false if mms
@@ -573,11 +666,20 @@ public class MessagingNotification {
          * @param attachmentType of the mms attachment
          * @param threadId thread this message belongs to
          */
+		//[ramos] added by liting 20151104 for BUG0008357
+/*
         public NotificationInfo(boolean isSms,
                 Intent clickIntent, String message, String subject,
                 CharSequence ticker, long timeMillis, String title,
                 Bitmap attachmentBitmap, Contact sender,
                 int attachmentType, long threadId, Uri uri) {
+*/
+		public NotificationInfo(boolean isSms,
+				Intent clickIntent, String message, String subject,
+				CharSequence ticker, long timeMillis, String title,
+				Bitmap attachmentBitmap, Contact sender,
+				int attachmentType, long threadId, Uri uri, int subId) {
+		//[ramos] end liting
             mIsSms = isSms;
             mClickIntent = clickIntent;
             mMessage = message;
@@ -592,6 +694,9 @@ public class MessagingNotification {
             /// M:Code analyze 007,add for storing the uri of sms or mms @{
             mUri = uri;
             /// @}
+			//[ramos] added by liting 20151104 for BUG0008357
+			mSubId = subId;
+			//[ramos] end liting
         }
 
         public long getTime() {
@@ -677,6 +782,25 @@ public class MessagingNotification {
           }
           return spannableStringBuilder;
         }
+		//[ramos] added by liting 20151104 for BUG0008357		
+        public String formatInboxIconMessage(Context context) {
+        
+			List<SubscriptionInfo> mSubInfoList;
+			mSubInfoList = SubscriptionManager.from(context).getActiveSubscriptionInfoList();
+			int mSubCount = (mSubInfoList != null && !mSubInfoList.isEmpty()) ? mSubInfoList.size() : 0;
+			int drawable = R.drawable.sms_icon_sim1;
+			if (mSubCount > 1) {
+				if (mSubId == mSubInfoList.get(0).getSubscriptionId()) {
+					drawable = R.drawable.sms_icon_sim1;
+				} else if(mSubId == mSubInfoList.get(1).getSubscriptionId()) {
+					drawable = R.drawable.sms_icon_sim2;
+				} 
+			} else {
+				return null;
+			}
+			return String.valueOf(drawable);
+		}
+		//[ramos] end liting
 
         // This is the summary string used in bigPicture notifications.
         public CharSequence formatPictureMessage(Context context) {
@@ -814,6 +938,9 @@ public class MessagingNotification {
                 Uri msgUri = Mms.CONTENT_URI.buildUpon().appendPath(
                         Long.toString(msgId)).build();
                 String address = AddressUtils.getFrom(context, msgUri);
+				//[ramos] added by liting 20151104 for BUG0008357
+				int subId = cursor.getInt(cursor.getColumnIndexOrThrow(Mms.SUBSCRIPTION_ID));
+				//[ramos] end liting
 
                 Contact contact = Contact.get(address, false);
                 if (contact.getSendToVoicemail()) {
@@ -862,6 +989,19 @@ public class MessagingNotification {
                 }
 
                 /// M:Code analyze 008,add a parameter msgUri for storing uri of message @{
+				//[ramos] added by liting 20151104 for BUG0008357
+/*
+                NotificationInfo info = getNewMessageNotificationInfo(context,
+                        false 
+                        address,
+                        messageBody, subject,
+                        threadId,
+                        timeMillis,
+                        attachedPicture,
+                        contact,
+                        attachmentType,
+                        msgUri);
+*/
                 NotificationInfo info = getNewMessageNotificationInfo(context,
                         false /* isSms */,
                         address,
@@ -871,7 +1011,9 @@ public class MessagingNotification {
                         attachedPicture,
                         contact,
                         attachmentType,
-                        msgUri);
+                        msgUri,
+                        subId);
+				//[ramos] end liting
                 /// @}
                 /// M:Code analyze 20,add a lock prevent multithreads accessing the same resources meantime
                 /// avoid function sNotificationSet.add accessing by many threads at the same time @{
@@ -1000,6 +1142,9 @@ public class MessagingNotification {
                 int msgId = cursor.getInt(COLUMN_SMS_ID);
                 boolean isSms = true;
                 Bitmap attachmentBitmap = null;
+				//[ramos] added by liting 20151104 for BUG0008357
+				int subId = cursor.getInt(cursor.getColumnIndexOrThrow(Sms.SUBSCRIPTION_ID));
+				//[ramos] end liting
 
                 isSms = !mIpMessagingNotification.isIpAttachMessage(msgId, cursor);
                 attachmentBitmap = mIpMessagingNotification.getIpBitmap(msgId, cursor);
@@ -1011,11 +1156,21 @@ public class MessagingNotification {
                 }
 
                 /// M:Code analyze 009,add a parameter for storing uri of message @{
+				//[ramos] added by liting 20151104 for BUG0008357
+/*
+                NotificationInfo info = getNewMessageNotificationInfo(context, isSms,
+                        address, message, null ,
+                        threadId, timeMillis, attachmentBitmap ,
+                        contact, WorkingMessage.TEXT, Sms.CONTENT_URI.buildUpon()
+                                        .appendPath(Long.toString(cursor.getLong(COLUMN_SMS_ID))).build());
+*/
                 NotificationInfo info = getNewMessageNotificationInfo(context, isSms /* isSms */,
                         address, message, null /* subject */,
                         threadId, timeMillis, attachmentBitmap /* attachmentBitmap */,
                         contact, WorkingMessage.TEXT, Sms.CONTENT_URI.buildUpon()
-                                        .appendPath(Long.toString(cursor.getLong(COLUMN_SMS_ID))).build());
+                                        .appendPath(Long.toString(cursor.getLong(COLUMN_SMS_ID))).build(), subId);
+				//[ramos] end liting 20151104 for BUG0008357
+
                 /// @}
                 /// M:Code analyze 20,add a lock prevent multithreads accessing the same resources meantime
                 /// avoid function sNotificationSet.add accessing by many threads at the same time @{
@@ -1038,6 +1193,8 @@ public class MessagingNotification {
     /// M:Code analyze 010,add a parameter uri for storing uri of message.
     /// the function will be called in plugin, so change to public; when modify this function,
     /// please notify plugin team @{
+	//[ramos] added by liting 20151104 for BUG0008357
+/*
     public static final NotificationInfo getNewMessageNotificationInfo(
             Context context,
             boolean isSms,
@@ -1050,6 +1207,21 @@ public class MessagingNotification {
             Contact contact,
             int attachmentType,
             Uri uri) {
+*/
+    public static final NotificationInfo getNewMessageNotificationInfo(
+            Context context,
+            boolean isSms,
+            String address,
+            String message,
+            String subject,
+            long threadId,
+            long timeMillis,
+            Bitmap attachmentBitmap,
+            Contact contact,
+            int attachmentType,
+            Uri uri,
+			int subId) {
+	//[ramos] end liting
         Log.d(TAG, "getNewMessageNotificationInfo" +
                 "\n\t isSms \t = " + isSms +
                 "\n\t address \t= " + address +
@@ -1087,9 +1259,16 @@ public class MessagingNotification {
         CharSequence ticker = buildTickerMessage(
                 context, address, subject, message);
 
+		//[ramos] added by liting 20151104 for BUG0008357
+/*
         return new NotificationInfo(isSms,
                 clickIntent, message, subject, ticker, timeMillis,
                 senderInfoName, attachmentBitmap, contact, attachmentType, threadId, uri);
+*/
+        return new NotificationInfo(isSms,
+                clickIntent, message, subject, ticker, timeMillis,
+                senderInfoName, attachmentBitmap, contact, attachmentType, threadId, uri, subId);
+		//[ramos] end liting
     }
     /// @}
 
@@ -1276,6 +1455,35 @@ public class MessagingNotification {
         noti.setSmallIcon(R.drawable.stat_notify_sms);
         // add for ipmessage
         mIpMessagingNotification.setIpSmallIcon(noti, mostRecentNotification.mSender.getNumber());
+		//[ramos] added by liting 20151104 for BUG0008357
+		List<SubscriptionInfo> mSubInfoList;
+		mSubInfoList = SubscriptionManager.from(context).getActiveSubscriptionInfoList();
+        int mSubCount = (mSubInfoList != null && !mSubInfoList.isEmpty()) ? mSubInfoList.size() : 0;
+		
+		if (mSubCount > 1) {
+			if (uniqueThreadCount == 1) {
+				if (mostRecentNotification.mSubId == mSubInfoList.get(0).getSubscriptionId()) {
+					noti.setSubIcon(R.drawable.sms_icon_sim1);
+				} else if(mostRecentNotification.mSubId == mSubInfoList.get(1).getSubscriptionId()) {
+					noti.setSubIcon(R.drawable.sms_icon_sim2);
+				} 
+			}
+		} else if (mSubCount == 1){
+			
+            SubscriptionInfo subInfo = SubscriptionManager.from(context)
+                    .getActiveSubscriptionInfo(mostRecentNotification.mSubId);
+            //[ramos] begin by liting 20151218 for BUG0011420
+			if (subInfo != null && subInfo.getSimSlotIndex() == 0) {
+				noti.setSubIcon(R.drawable.sms_icon_sim1);
+			} else if (subInfo != null && subInfo.getSimSlotIndex() == 1){
+				noti.setSubIcon(R.drawable.sms_icon_sim2);
+			}
+            //[ramos] end liting
+
+		} else{
+			noti.setSubIcon(0);
+		}
+		//[ramos] end liting
 
         NotificationManager nm = (NotificationManager)
                 context.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -1304,8 +1512,20 @@ public class MessagingNotification {
             */
             /// M: comment if, change condition
             //if (vibrateAlways || vibrateSilent && nowSilent) {
+            //[ramos] begin by liting 20151006 for BUG 0008421 : mms vibrate not depend system vibrate
+/*
             if (notiProf.needVibrate() && audioManager.shouldVibrate(AudioManager.VIBRATE_TYPE_NOTIFICATION)) {
                 defaults |= Notification.DEFAULT_VIBRATE;
+*/
+			if (notiProf.needVibrate()) {
+				if (MmsApp.isDualRingtone) {
+	                Vibrator vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);  
+	                long [] pattern = {100,400,100,400};  
+	                vibrator.vibrate(pattern,-1); 
+				} else {
+					defaults |= Notification.DEFAULT_VIBRATE;
+				}
+			//[ramos] end liting	
             }
             /// @}
 
@@ -1320,6 +1540,20 @@ public class MessagingNotification {
             isSystemNeedMute = isVibrateMode || isSilentMode;
             String ringtoneStr = (isSystemNeedMute || notiProf.needMute()) ? null : (sp.getString(
                     NotificationPreferenceActivity.NOTIFICATION_RINGTONE, null));
+            //[ramos]_START: Add by yuyongjun at 20151228 : Type that refers to sounds that are used for received a sms.	
+            if(ringtoneStr != null && MmsApp.isDualRingtone){
+                AudioProfileManager mProfileManager = (AudioProfileManager) context
+							.getSystemService(Context.AUDIO_PROFILE_SERVICE);
+                int SlotId_SIM1 = SubscriptionManager.getSlotId(mostRecentNotification.mSubId);
+                Uri uri = mProfileManager.getRingtoneUri(AudioProfileManager.TYPE_RECEIVED_SMS, mostRecentNotification.mSubId);
+                if(uri != null){
+                    //Log.d("yu_incall", "updateNotification getRingtoneUri=" + ringtoneStr);
+                    ringtoneStr = uri.toString();
+                } else {
+                    ringtoneStr = null;
+                }
+            }
+            //[ramos]_END: Add by yuyongjun at 20151228	
             Log.d(TAG, "updateNotification isVibrateMode" + isVibrateMode + " isSilentMode "
                     + isSilentMode + " ringtoneStr " + ringtoneStr);
             /// @}
@@ -1422,7 +1656,12 @@ public class MessagingNotification {
 
                 // We have to set the summary text to non-empty so the content text doesn't show
                 // up when expanded.
+                //[ramos] added by liting 20151119 for BUG0010012
+/*
                 inboxStyle.setSummaryText(" ");
+*/
+                inboxStyle.setSummaryText(null);
+                //[ramos] end liting
 
                 // At this point we've got multiple messages in multiple threads. We only
                 // want to show the most recent message per thread, which are in
@@ -1433,6 +1672,9 @@ public class MessagingNotification {
                 for (int i = 0; i < maxMessages; i++) {
                     NotificationInfo info = mostRecentNotifPerThread.get(i);
                     inboxStyle.addLine(info.formatInboxMessage(context));
+					//[ramos] added by liting 20151104 for BUG0008357		
+					inboxStyle.addLineIcon(info.formatInboxIconMessage(context));
+					//[ramos] end liting
                 }
                 notification = inboxStyle.build();
 
@@ -2186,6 +2428,13 @@ public class MessagingNotification {
         if (!TextUtils.isEmpty(ringtoneUri)
                 && ringtoneUri.equals(NotificationPreferenceActivity.DEFAULT_RINGTONE)) {
             Uri uri = RingtoneManager.getActualDefaultRingtoneUri(context, RingtoneManager.TYPE_NOTIFICATION);
+            //[ramos]_START: Add by yuyongjun at 20151228 : Type that refers to sounds that are used for received a sms
+			if (MmsApp.isDualRingtone) {
+            	uri = RingtoneManager.getDefaultRingtoneUri(context, RingtoneManager.TYPE_NOTIFICATION);
+			} else {
+				uri = RingtoneManager.getActualDefaultRingtoneUri(context, RingtoneManager.TYPE_NOTIFICATION);
+			}
+            //[ramos]_END: Add by yuyongjun at 20151228
             if (uri != null) {
                 if (RingtoneManager.isRingtoneExist(context, uri)) {
                     Log.d(TAG, "checkRingtone use Default Ringtone");

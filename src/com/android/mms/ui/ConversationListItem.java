@@ -105,6 +105,15 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
     /// M: add for new common feature.
     private View mMuteView;
     private TextView mUnreadView;
+	//[ramos]added by liting 20150919
+    private View mSubIdView;
+	private View mGuideView;
+	private View mRadioView;
+	private View mClockView;
+	//[ramos]end liting
+    //[ramos] begin liting 20160411 for BUG0014757 and refer to repository of mtk6753
+    private boolean mSubjectSingleLine;
+    //[ramos] end liting
     private static final int MAX_UNREAD_MESSAGES_COUNT = 999;
     private static final String MAX_UNREAD_MESSAGES_STRING = "999+";
     private static final int MAX_READ_MESSAGES_COUNT = 9999;
@@ -162,6 +171,14 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
         /// @}
         // add for op
         mOpConversationListItemExt.onFinishInflate(mSubjectView);
+        //[ramos]added by liting 20150919
+		mSubIdView = findViewById(R.id.sub);
+        mClockView = findViewById(R.id.clock);
+        mGuideView = findViewById(R.id.guide);
+		mGuideView.setVisibility(View.VISIBLE);
+        mRadioView= findViewById(R.id.radioButton);
+		mRadioView.setVisibility(View.GONE);
+        //[ramos]end liting
     }
 
     public Conversation getConversation() {
@@ -210,7 +227,8 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
         SpannableStringBuilder buf = new SpannableStringBuilder(from);
 
         /// M:
-        int before = buf.length();
+//[ramos]deleted by liting 20150919
+/*        int before = buf.length();
         if (!mConversation.hasUnreadMessages()) {
             MmsLog.d(TAG, "formatMessage(): Thread " + mConversation.getThreadId() +
                     " has no unread message.");
@@ -228,28 +246,31 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
                 buf.setSpan(new ForegroundColorSpan(mContext.getResources().getColor(R.color.message_count_color)),
                         before, buf.length(), Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
             }
-        }
-/** M: Remove Google default code
+        }*/
+//[ramos]end liting
+//[ramos]modified by liting 20150919
+//** M: Remove Google default code
         if (mConversation.hasDraft()) {
            // buf.append(mContext.getResources().getString(R.string.draft_separator));
-            int before = buf.length();
+            int before_draft = buf.length();
             int size;
-            buf.append(",  " + mContext.getResources().getString(R.string.has_draft));
-            size = android.R.style.TextAppearance_Small;
-            buf.setSpan(new TextAppearanceSpan(mContext, size, color), before + 1,
+            buf.append(mContext.getResources().getString(R.string.ramos_has_draft));
+			size = android.R.style.TextAppearance_Small;;
+			//size = mContext.getResources().getDimensionPixelSize(R.dimen.ramos_textSizeSecondary);
+            buf.setSpan(new TextAppearanceSpan(mContext, size, color), before_draft,
                     buf.length(), Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
             buf.setSpan(new ForegroundColorSpan(
-                    mContext.getResources().getColor(R.drawable.text_color_red)),
-                    before + 1, buf.length(), Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+                    mContext.getResources().getColor(R.drawable.ramos_text_color_red)),
+                    before_draft, buf.length(), Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
         }
-
- */
+//[ramos]end liting
         // Unread messages are shown in bold
-        if (mConversation.hasUnreadMessages()) {
-            buf.setSpan(STYLE_BOLD, 0, buf.length(),
-                    Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
-        }
-
+        //[ramos]deleted by liting 20150919
+//        if (mConversation.hasUnreadMessages()) {
+//            buf.setSpan(STYLE_BOLD, 0, buf.length(),
+//                    Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+//        }
+		//[ramos]end liting
         return buf;
     }
 
@@ -257,7 +278,10 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
         Drawable avatarDrawable;
         ConversationList conversationList = (ConversationList) ConversationList.getContext();
         if (conversationList.isActionMode() && mConversation.isChecked()) {
-            mSelectIcon.setVisibility(View.VISIBLE);
+            //[ramos]modified by liting 20160328
+            //mSelectIcon.setVisibility(View.VISIBLE);
+            mSelectIcon.setVisibility(View.GONE);
+            //[ramos]end liting
             mAvatarView.setVisibility(View.GONE);
             mSelectIcon.setImageDrawable(sDefaultSelectedImage);
         } else {
@@ -299,12 +323,18 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
             }
             ImageView headerView;
             if (conversationList.isActionMode()) {
-                mSelectIcon.setVisibility(View.VISIBLE);
+                //[ramos]modified by liting 20160328
+                //mSelectIcon.setVisibility(View.VISIBLE);
+                mSelectIcon.setVisibility(View.GONE);
+                //[ramos]end liting
                 mAvatarView.setVisibility(View.GONE);
                 headerView = mSelectIcon;
             } else {
                 mSelectIcon.setVisibility(View.GONE);
-                mAvatarView.setVisibility(View.VISIBLE);
+                //[ramos]modified by liting 20150919
+                //mAvatarView.setVisibility(View.VISIBLE);
+                mAvatarView.setVisibility(View.GONE);
+                //[ramos]end liting
                 headerView = mAvatarView;
             }
             if (avatarDrawable != sDefaultContactImage) {
@@ -425,6 +455,11 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
             }
             Contact.addListener(this);
         }
+        //[ramos] begin liting 20160411 for BUG0014757 and refer to repository of mtk6753
+        if (mSubjectSingleLine) {
+            mSubjectView.setSingleLine(true);
+        }
+        //[ramos] end liting
         /// M: Code analyze 031, For bug ALPS00235723, The crolling performance of message .
         mSubjectView.setVisibility(VISIBLE);
  //       LayoutParams subjectLayout = (LayoutParams)mSubjectView.getLayoutParams();
@@ -443,7 +478,34 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
         }
         /// @}
         mErrorIndicator.setVisibility(hasError ? VISIBLE : GONE);
+		//[ramos]added by liting 20151022 for BUG0008282
+		showSubIdView();
+		//[ramos]end liting
     }
+
+	//[ramos]added by liting 20151022 for BUG0008282
+	private void showSubIdView() {
+		List<SubscriptionInfo> subInfoList = SubscriptionManager.from(mContext).getActiveSubscriptionInfoList();
+		SubscriptionInfo subInfo = SubscriptionManager.from(MmsApp.getApplication())
+				.getActiveSubscriptionInfo(mConversation.getConvSubId());
+		int subCount = (subInfoList != null && !subInfoList.isEmpty()) ? subInfoList.size() : 0;
+		if (null != subInfo) {
+			mSubIdView.setVisibility(View.VISIBLE);
+				if (subInfo.getSimSlotIndex() == 0) {
+					((ImageView) mSubIdView).setImageResource(R.drawable.sms_icon_sim1);
+				} else if (subInfo.getSimSlotIndex() == 1){
+					((ImageView) mSubIdView).setImageResource(R.drawable.sms_icon_sim2);
+				}
+		} else {
+			if (subCount >= 1) {
+				mSubIdView.setVisibility(View.VISIBLE);
+				((ImageView) mSubIdView).setImageResource(R.drawable.sms_icon_null);
+			} else {
+				mSubIdView.setVisibility(View.INVISIBLE);
+			}
+		}
+	}
+	//[ramos]end liting
 
     private void updateBackground(Conversation conversation) {
         int backgroundId;
@@ -458,6 +520,20 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
         } else {
             backgroundId = R.drawable.conversation_item_background_unread;
         }
+        //[ramos]added by liting 20150921
+        if (conversationList.isActionMode()) {
+			mRadioView.setVisibility(View.VISIBLE);
+			mGuideView.setVisibility(View.GONE);
+        	if(conversation.isChecked()) {
+        		((ImageView) mRadioView).setImageResource(R.drawable.ramos_btn_select_on);
+        	} else {
+               	((ImageView) mRadioView).setImageResource(R.drawable.ramos_btn_select_off);
+        	}
+        } else {
+			mRadioView.setVisibility(View.GONE);
+			mGuideView.setVisibility(View.VISIBLE);
+		}
+        //[ramos]end liting
         Drawable background = mContext.getResources().getDrawable(backgroundId);
         setBackgroundDrawable(background);
     }
@@ -501,6 +577,9 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
         /// M:
         mMuteView.setVisibility(View.GONE);
         mOpConversationListItemExt.bindDefault((ImageView) findViewById(R.id.sim_type_conv));
+		//[ramos]added by liting 20151022 for BUG0008282
+        mSubIdView.setVisibility(View.INVISIBLE);
+		//[ramos]end liting
     }
     /// @}
 
@@ -552,4 +631,10 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
         }
         return from;
     }
+
+    //[ramos] begin liting 20160411 for BUG0014757 and refer to repository of mtk6753
+    public void setSubjectSingleLineMode(boolean value) {
+        mSubjectSingleLine = value;
+    }
+    //[ramos] end liting
 }

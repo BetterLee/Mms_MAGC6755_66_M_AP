@@ -161,7 +161,10 @@ public class MmsConfig {
     /// M: default value
     private static int mMaxRestrictedImageHeight = 1200;
     private static int mMaxRestrictedImageWidth = 1600;
-    private static int mSmsRecipientLimit = 100;
+	//[ramos] modified by liting 20151110 for BUG0010026 MTKRecipientEditTextView.MAX_CHIPS_PARSED & RecipientAlternatesAdapter.MAX_LOOKUPS & MmsConfig.mSmsRecipientLimit must be same value
+    //private static int mSmsRecipientLimit = 100;
+    private static int mSmsRecipientLimit = 500;
+	//[ramos] end liting
 
     private static boolean mDeviceStorageFull = false;
 

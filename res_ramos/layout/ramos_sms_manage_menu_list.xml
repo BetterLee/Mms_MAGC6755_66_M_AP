@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright (C) 2013 Google Inc.
+-->
+
+<LinearLayout  xmlns:android="http://schemas.android.com/apk/res/android"
+   android:id="@+id/ramos_sms_manage_menu_list" 
+   android:layout_width="match_parent"
+   android:layout_height="58dip"
+   android:orientation="vertical" 
+   android:background="@color/tab_color"
+   android:layout_alignParentBottom="true"
+   android:gravity="center">
+   
+    <View 
+         android:id="@+id/bottom_line"
+         android:layout_width="match_parent"
+         android:layout_height="0.7dip"
+         android:background="@color/top_line"/>
+    
+	<RelativeLayout
+	   android:layout_width="match_parent"
+	   android:layout_height="58dip"
+	   android:gravity="center"
+	   android:background="@color/tab_color"> 
+      <TextView
+          android:id="@+id/menu_sim_share"
+          android:layout_width="60dip"
+          android:layout_height="wrap_content"
+          android:layout_gravity="center_vertical"
+          android:layout_marginLeft="34dp"
+          android:layout_marginTop="7dip"
+          android:singleLine="true"
+          android:gravity="center"
+          android:layout_alignParentLeft="true"
+          android:textColor="@color/ramos_menu_color"
+          android:drawablePadding="3dip"
+          android:drawableTop="@drawable/ramos_sms_btn_share_selector" 
+          android:text="@string/menu_forward"
+          android:textSize="@dimen/ramos_menu_text" />
+      <TextView
+          android:id="@+id/menu_sim_delete"
+          android:layout_width="60dip"
+          android:layout_height="wrap_content"
+          android:layout_gravity="center_vertical"
+          android:gravity="center"
+          android:layout_centerInParent="true"
+          android:layout_marginTop="7dip"
+          android:singleLine="true"
+          android:textColor="@color/ramos_menu_color"
+          android:drawablePadding="3dip"
+          android:drawableTop="@drawable/ramos_sms_btn_delete_selector" 
+          android:text="@string/delete"
+          android:textSize="@dimen/ramos_menu_text" />
+      <TextView
+          android:id="@+id/menu_sim_copy"
+          android:layout_width="60dip"
+          android:layout_height="wrap_content"
+          android:layout_gravity="center_vertical"
+          android:gravity="center"
+          android:layout_marginRight="34dp"
+          android:layout_marginTop="7dip"
+          android:singleLine="true"
+          android:layout_alignParentRight="true"
+          android:textColor="@color/ramos_menu_color"
+          android:drawablePadding="3dip"
+          android:drawableTop="@drawable/ramos_sms_btn_copy_selector" 
+          android:text="@string/ramos_sim_copy_to_phone_memory"
+          android:textSize="@dimen/ramos_menu_text" />
+
+          
+      <TextView
+          android:id="@+id/menu_capacity"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:gravity="center"
+          android:singleLine="true"
+          android:textAppearance="?android:textAppearanceMedium"
+          android:textColor="@color/ramos_menu_color"
+          android:drawablePadding="3dip"
+          android:drawableTop="@drawable/ramos_menu_capacity" 
+          android:text="@string/show_icc_sms_capacity_title"
+          android:textSize="@dimen/ramos_menu_text"
+          android:visibility="gone" />
+      </RelativeLayout>
+</LinearLayout>
+       
+

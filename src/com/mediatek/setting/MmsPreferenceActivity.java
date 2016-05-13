@@ -55,6 +55,13 @@ import com.mediatek.setting.SimStateMonitor.SimStateListener;
 
 import java.util.List;
 import com.android.internal.telephony.PhoneConstants;
+//[ramos]added by liting 20150929
+import android.view.View;
+import android.widget.TextView;
+import android.widget.LinearLayout;
+import android.preference.SwitchPreference;
+import android.provider.Settings;
+//[ramos]end liting
 
 /**
  * With this activity, users can set preferences for MMS and SMS and
@@ -93,21 +100,22 @@ public class MmsPreferenceActivity extends PreferenceActivity
     /// M: google jb.mr1 patch, add for group mms
     public static final String GROUP_MMS_MODE = "pref_key_mms_group_mms";
 
+	//[ramos] modified by liting 20150929 CheckBoxPreference -> SwitchPreference
     // all preferences need change key for single sim card
-    private CheckBoxPreference mMmsDeliveryReport;
+    private SwitchPreference mMmsDeliveryReport;
 
-    private CheckBoxPreference mMmsReadReport;
+    private SwitchPreference mMmsReadReport;
 
     // M: add this for read report
-    private CheckBoxPreference mMmsAutoReplyReadReport;
+    private SwitchPreference mMmsAutoReplyReadReport;
 
-    private CheckBoxPreference mMmsAutoRetrieval;
+    private SwitchPreference mMmsAutoRetrieval;
 
-    private CheckBoxPreference mMmsRetrievalDuringRoaming;
+    private SwitchPreference mMmsRetrievalDuringRoaming;
 
     // M: google jb.mr1 patch, add for group mms
-    private CheckBoxPreference mMmsGroupMms;
-
+    private SwitchPreference mMmsGroupMms;
+	//[ramos] end liting
     // all preferences need change key for multiple sim card
     private Preference mMmsDeliveryReportMultiSim;
 
@@ -203,6 +211,23 @@ public class MmsPreferenceActivity extends PreferenceActivity
         ActionBar actionBar = getActionBar();
         actionBar.setTitle(getResources().getString(R.string.actionbar_mms_setting));
         actionBar.setDisplayHomeAsUpEnabled(true);
+		//[ramos]modified by liting 20150918
+		actionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
+		actionBar.setCustomView(R.layout.ramos_actionbar);
+        TextView actionbartitle=(TextView)findViewById(R.id.ramos_actionbar_title);
+        actionbartitle.setText(R.string.actionbar_mms_setting);
+        
+    	TextView returntextview=(TextView)findViewById(R.id.preference_return_textview);
+    	returntextview.setText(R.string.set);
+    	returntextview.setVisibility(View.VISIBLE);
+    	LinearLayout linear=(LinearLayout)findViewById(R.id.preference_actionbar_return);
+    	linear.setVisibility(View.VISIBLE);
+		linear.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    finish();
+                }
+            });
+		//[ramos]end liting
         setMessagePreferences();
     }
 
@@ -210,24 +235,33 @@ public class MmsPreferenceActivity extends PreferenceActivity
 
         MmsLog.d(TAG, "SubCount is :" + SimStateMonitor.getInstance().getSubCount());
         // / M: fix bug ALPS00421364
-        if (SimStateMonitor.getInstance().getSubCount() == 0) {
-            addPreferencesFromResource(R.xml.mmspreferences);
-            mMmsDeliveryReport = (CheckBoxPreference) findPreference(MMS_DELIVERY_REPORT_MODE);
+        if (SimStateMonitor.getInstance().getSubCount() == 0 || (SimStateMonitor.getInstance().getSubCount() == 1 && (currentSimState() == false || !MessageUtils.isSimMessageAccessable(this)))) {
+			//[ramos] modified by liting 20150929 CheckBoxPreference -> SwitchPreference
+            //addPreferencesFromResource(R.xml.mmspreferences);
+            addPreferencesFromResource(R.xml.ramos_mmspreferences);
+            mMmsDeliveryReport = (SwitchPreference) findPreference(MMS_DELIVERY_REPORT_MODE);
             mMmsDeliveryReport.setEnabled(false);
-            mMmsReadReport = (CheckBoxPreference) findPreference(READ_REPORT_MODE);
+            mMmsReadReport = (SwitchPreference) findPreference(READ_REPORT_MODE);
             mMmsReadReport.setEnabled(false);
-            mMmsAutoReplyReadReport = (CheckBoxPreference) findPreference(READ_REPORT_AUTO_REPLY);
+            mMmsAutoReplyReadReport = (SwitchPreference) findPreference(READ_REPORT_AUTO_REPLY);
             mMmsAutoReplyReadReport.setEnabled(false);
-            mMmsAutoRetrieval = (CheckBoxPreference) findPreference(AUTO_RETRIEVAL);
+            mMmsAutoRetrieval = (SwitchPreference) findPreference(AUTO_RETRIEVAL);
             mMmsAutoRetrieval.setEnabled(false);
             mMmsRetrievalDuringRoaming
-                    = (CheckBoxPreference) findPreference(RETRIEVAL_DURING_ROAMING);
+                    = (SwitchPreference) findPreference(RETRIEVAL_DURING_ROAMING);
+			//[ramos] end liting
             mMmsRetrievalDuringRoaming.setEnabled(false);
             // / @}
         } else if (SimStateMonitor.getInstance().getSubCount() == 1) {
-            addPreferencesFromResource(R.xml.mmspreferences);
+			//[ramos] modified by liting 20150929 CheckBoxPreference -> SwitchPreference
+            //addPreferencesFromResource(R.xml.mmspreferences);
+            addPreferencesFromResource(R.xml.ramos_mmspreferences);
+			//[ramos] end liting
         } else {
-            addPreferencesFromResource(R.xml.mmsmulticardpreferences);
+            //[ramos] modified by liting 20150929 CheckBoxPreference -> SwitchPreference
+            //addPreferencesFromResource(R.xml.mmsmulticardpreferences);
+            addPreferencesFromResource(R.xml.ramos_mmsmulticardpreferences);
+            //[ramos] end liting
         }
 
         PreferenceCategory mmsCategory
@@ -274,6 +308,25 @@ public class MmsPreferenceActivity extends PreferenceActivity
         }
     }
 
+	//[ramos] added by liting 20151009 for BUG0008337	
+    private static final int MODE_PHONE1_ONLY = 1;
+	
+	private boolean currentSimState() {
+
+		int currentSimMode = Settings.System.getInt(this.getContentResolver(),
+				Settings.System.MSIM_MODE_SETTING, -1);
+
+        if (SimStateMonitor.getInstance().getSubCount() == 0) {
+            return false;
+        }
+		boolean radiosState = ((currentSimMode & (MODE_PHONE1_ONLY << SimStateMonitor.getInstance().getSubInfoList().get(0).getSimSlotIndex())) == 0) ?
+				false : true;
+		
+		return radiosState;
+
+	}
+	//[ramos] end liting 
+
     private void changeSingleCardKeyToSimRelated() {
         // get to know which one
         if (SimStateMonitor.getInstance().getSubCount() == 0) {
@@ -288,16 +341,17 @@ public class MmsPreferenceActivity extends PreferenceActivity
         int subId = singleCardInfo.getSubscriptionId();
         MmsLog.d(TAG, "changeSingleCardKeyToSimRelated Got subId = " + subId);
         // translate all key to SIM-related key;
-        mMmsDeliveryReport = (CheckBoxPreference) findPreference(MMS_DELIVERY_REPORT_MODE);
-        mMmsReadReport = (CheckBoxPreference) findPreference(READ_REPORT_MODE);
+		//[ramos] modified by liting 20150929 CheckBoxPreference -> SwitchPreference
+        mMmsDeliveryReport = (SwitchPreference) findPreference(MMS_DELIVERY_REPORT_MODE);
+        mMmsReadReport = (SwitchPreference) findPreference(READ_REPORT_MODE);
         // M: add this for read report
-        mMmsAutoReplyReadReport = (CheckBoxPreference) findPreference(READ_REPORT_AUTO_REPLY);
+        mMmsAutoReplyReadReport = (SwitchPreference) findPreference(READ_REPORT_AUTO_REPLY);
         if (FeatureOption.MTK_C2K_SUPPORT && MessageUtils.isUSimType(subId)) {
             mMmsAutoReplyReadReport.setEnabled(false);
             mMmsReadReport.setEnabled(false);
         }
-        mMmsAutoRetrieval = (CheckBoxPreference) findPreference(AUTO_RETRIEVAL);
-        mMmsRetrievalDuringRoaming = (CheckBoxPreference) findPreference(RETRIEVAL_DURING_ROAMING);
+        mMmsAutoRetrieval = (SwitchPreference) findPreference(AUTO_RETRIEVAL);
+        mMmsRetrievalDuringRoaming = (SwitchPreference) findPreference(RETRIEVAL_DURING_ROAMING);
         mMmsDeliveryReport.setKey(Long.toString(subId) + "_" + MMS_DELIVERY_REPORT_MODE);
         mMmsReadReport.setKey(Long.toString(subId) + "_" + READ_REPORT_MODE);
         // M: add this for read report
@@ -305,7 +359,8 @@ public class MmsPreferenceActivity extends PreferenceActivity
             mMmsAutoReplyReadReport.setKey(Long.toString(subId) + "_" + READ_REPORT_AUTO_REPLY);
         }
         // M: google jb.mr1 patch, add for group mms
-        mMmsGroupMms = (CheckBoxPreference) findPreference(GROUP_MMS_MODE);
+        mMmsGroupMms = (SwitchPreference) findPreference(GROUP_MMS_MODE);
+		//[ramos] end liting
         if (mMmsGroupMms != null) {
             mMmsGroupMms.setKey(GROUP_MMS_MODE);
         }
@@ -351,7 +406,9 @@ public class MmsPreferenceActivity extends PreferenceActivity
         // get the stored value
         SharedPreferences sp = getSharedPreferences(
                 "com.android.mms_preferences", MODE_WORLD_READABLE);
-        mMmsGroupMms = (CheckBoxPreference) findPreference(GROUP_MMS_MODE);
+		//[ramos] modified by liting 20150929 CheckBoxPreference -> SwitchPreference
+        mMmsGroupMms = (SwitchPreference) findPreference(GROUP_MMS_MODE);
+		//[ramos] end liting
         if (mMmsGroupMms != null) {
             mMmsGroupMms.setKey(GROUP_MMS_MODE);
         }
@@ -368,7 +425,9 @@ public class MmsPreferenceActivity extends PreferenceActivity
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         menu.clear();
-        menu.add(0, MENU_RESTORE_DEFAULTS, 0, R.string.restore_default);
+		//[ramos]added by liting 20150923
+        //menu.add(0, MENU_RESTORE_DEFAULTS, 0, R.string.restore_default);
+		//[ramos]end liting
         return true;
     }
 

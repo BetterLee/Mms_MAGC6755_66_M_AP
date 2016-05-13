@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+
+    
+    
+    <LinearLayout
+        android:id="@+id/menu_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:background="#f8f8f8"
+        android:orientation="vertical" >
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="48dip"
+            android:gravity="center"
+            android:text="@string/ramos_dialing_options"
+            android:textColor="@color/black"
+            android:textSize="18sp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.5dip"
+            android:background="@color/menu_sel_color" />
+
+        <LinearLayout
+            android:id="@+id/ramos_card_one"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" >
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_marginLeft="15dip"
+                android:src="@drawable/contacts_icon_set_sim1" />
+
+            <TextView
+                android:id="@+id/btn_sim1_call"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="66dp"
+                android:layout_marginLeft="14dip"
+                android:background="@null"
+                android:gravity="center|left"
+                android:text="@string/ramos_sim_card_one_call"
+                android:textColor="@color/color_name"
+                android:textSize="16sp" />
+            
+            <TextView
+                android:id="@+id/btn_sim1_mark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="14dip"
+                android:visibility="gone"
+                android:background="@null"
+                android:text="@string/ramos_sim_mark"
+                android:textColor="@color/color_name"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.5dip"
+            android:background="@drawable/ic_color_line" />
+
+        <LinearLayout
+             android:id="@+id/ramos_card_two"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" >
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_marginLeft="15dip"
+                android:src="@drawable/contacts_icon_set_sim2" />
+
+            <TextView
+                android:id="@+id/btn_sim2_call"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="66dp"
+                android:layout_marginLeft="14dip"
+                android:background="@null"
+                android:gravity="center|left"
+                android:text="@string/ramos_sim_card_two_call"
+                android:textColor="@color/color_name"
+                android:textSize="16sp" />
+            
+            <TextView
+                android:id="@+id/btn_sim2_mark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="14dip"
+                android:background="@null"
+                android:visibility="gone"
+                android:text="@string/ramos_sim_mark"
+                android:textColor="@color/color_name"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+</RelativeLayout>

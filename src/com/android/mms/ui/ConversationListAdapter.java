@@ -51,6 +51,9 @@ public class ConversationListAdapter extends MessageCursorAdapter implements Abs
     private OnContentChangedListener mOnContentChangedListener;
 
     private static HashSet<Long> sSelectedTheadsId;
+    //[ramos] begin liting 20160411 for BUG0014757 and refer to repository of mtk6753
+    private boolean mSubjectSingleLine;
+    //[ramos] end liting
 
     public ConversationListAdapter(Context context, Cursor cursor) {
         super(context, cursor, false /* auto-requery */);
@@ -73,6 +76,11 @@ public class ConversationListAdapter extends MessageCursorAdapter implements Abs
             Conversation.setNeedCacheConv(false);
             conv = Conversation.from(context, cursor);
             Conversation.setNeedCacheConv(true);
+            //[ramos] begin liting 20160411 for BUG0014757 and refer to repository of mtk6753
+            if (mSubjectSingleLine) {
+                headerView.setSubjectSingleLineMode(true);
+            }
+            //[ramos] end liting
             if (conv != null) {
                 conv.setIsChecked(sSelectedTheadsId.contains(conv.getThreadId()));
             }
@@ -96,7 +104,10 @@ public class ConversationListAdapter extends MessageCursorAdapter implements Abs
     @Override
     public View newView(Context context, Cursor cursor, ViewGroup parent) {
         if (LOCAL_LOGV) Log.v(TAG, "inflating new view");
-        return mFactory.inflate(R.layout.conversation_list_item, parent, false);
+        //[ramos] begin liting 20160122
+        //return mFactory.inflate(R.layout.conversation_list_item, parent, false);
+        return mFactory.inflate(R.layout.ramos_conversation_list_item, parent, false);
+        //[ramos] end liting
     }
 
     public interface OnContentChangedListener {
@@ -165,4 +176,10 @@ public class ConversationListAdapter extends MessageCursorAdapter implements Abs
     public HashSet<Long> getSelectedThreadsList() {
             return sSelectedTheadsId;
     }
+
+    //[ramos] begin liting 20160411 for BUG0014757 and refer to repository of mtk6753
+    public void setSubjectSingleLineMode(boolean value) {
+        mSubjectSingleLine = value;
+    }
+    //[ramos] end liting
 }

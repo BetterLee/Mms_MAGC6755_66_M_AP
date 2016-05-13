@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/*
+ * Copyright (C) 2008 Esmertec AG.
+ * Copyright (C) 2008 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+-->
+
+<com.android.mms.ui.ConversationListItem xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="80dp"
+    android:background="?android:attr/activatedBackgroundIndicator" >
+
+ 
+    <FrameLayout
+        android:id="@+id/headerIcon"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:paddingLeft="15dip"
+        android:paddingTop="10dip"
+        android:layout_width="60dip"
+        android:layout_height="60dip" >
+        <QuickContactBadge
+            android:id="@+id/avatar"
+            android:visibility="gone"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+        style="?android:attr/quickContactBadgeStyleWindowLarge" />
+        <ImageView
+            android:id="@+id/selectIcon"
+            android:visibility="gone"
+            android:clickable="false"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:src="@drawable/ic_selected_item" />
+    </FrameLayout>
+
+    <ImageView android:id="@+id/radioButton"
+        android:layout_alignParentRight="true"
+        android:layout_height="match_parent"
+        android:layout_width="wrap_content"
+        android:layout_marginRight="16dip"
+        android:layout_marginLeft="6dip"
+        android:layout_gravity="center_vertical"
+        android:src="@drawable/ramos_btn_select_off" />
+
+    <!-- modify layout add mute icon -->
+    <LinearLayout
+        android:id="@+id/iconlist"
+        android:layout_alignParentTop="true"
+        android:layout_toLeftOf="@id/radioButton"
+        android:layout_marginTop="13dip"
+        android:layout_marginRight="16dip"
+        android:orientation="horizontal"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content" 
+        android:layout_alignWithParentIfMissing="true">
+        <ImageView android:id="@+id/clock"
+            android:paddingLeft="5dp"
+            android:visibility="gone"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:src="@drawable/sms_icon_message_list_clock" />
+        <ImageView android:id="@+id/error"
+            android:paddingLeft="5dp"
+            android:visibility="gone"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:src="@drawable/ic_list_alert_sms_failed" />
+        <ImageView android:id="@+id/attachment"
+            android:paddingLeft="5dp"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:visibility="gone"
+            android:src="@drawable/ic_attachment_universal_small" />
+        <ImageView android:id="@+id/mute"
+            android:paddingLeft="5dp"
+            android:visibility="gone"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:src="@drawable/ipmsg_silent" />
+        <!-- only for OP09 -->
+<!-- [ramos]modified by liting 20150919 -->
+        <ImageView 
+            android:id= "@+id/sim_type_conv"
+            android:paddingLeft="5dp"
+            android:visibility="gone"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content" />
+
+        <TextView android:id="@+id/date"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:paddingLeft="5dp"
+            android:textSize= "12sp"
+            android:textColor="@color/dlg_text_counter_color"/>
+        <!-- [ramos]added by liting 20151022 for BUG0008282 -->
+        <ImageView android:id="@+id/sub"
+            android:paddingLeft="5dp"
+            android:paddingTop="4dp"
+            android:visibility="gone"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:src="@drawable/sms_icon_null" />
+        <!-- [ramos] end liting -->
+    </LinearLayout>
+    
+    <ImageView android:id="@+id/guide"
+        android:visibility="invisible"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="16dip"
+        android:layout_marginBottom="24dip"
+        android:layout_toLeftOf="@id/radioButton"
+        android:src="@drawable/ramos_guide" />
+        
+
+        
+    <RelativeLayout
+        android:id="@+id/title"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_marginTop="13dip"
+        android:layout_marginLeft="16dip"
+        android:layout_toRightOf="@id/avatar"
+        android:layout_toLeftOf="@id/iconlist"
+        android:gravity="center_vertical"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content">
+        
+        <ImageView android:id="@+id/fullintegrationmode"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:visibility="gone"/>
+            
+        <TextView android:id="@+id/from"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toRightOf="@id/fullintegrationmode"
+            android:textSize= "@dimen/ramos_textSizePrimary"
+            android:textColor="@color/ramos_title"
+            android:singleLine="true"
+            android:paddingRight="25dip"
+            android:ellipsize="middle" />
+
+        <TextView android:id="@+id/unread"
+            android:background="@drawable/ramos_ipmsg_message_box"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignRight="@id/from"
+            android:layout_centerVertical="true"
+            android:gravity="center"
+            android:paddingStart="4dip"
+            android:paddingEnd="4dip"
+            android:textSize="10sp"
+            android:textColor="@color/text_color_unread"
+            android:singleLine="true" />
+
+    </RelativeLayout>
+    
+
+        
+    <TextView android:id="@+id/subject"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:textSize= "@dimen/ramos_textSizeSecondary"
+        android:layout_alignParentBottom="true"
+        android:layout_toRightOf="@id/avatar"
+        android:layout_toLeftOf="@id/guide"
+        android:layout_marginLeft="16dip"
+        android:layout_marginRight="5dip"
+        android:layout_marginBottom="13dip"
+        android:layout_marginTop="8dip"
+        android:gravity="top"
+        android:textColor="@color/ramos_summary"
+        android:lines="2"
+        android:ellipsize="end" />
+<!-- [ramos]end liting  -->    
+        
+</com.android.mms.ui.ConversationListItem>

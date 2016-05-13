@@ -154,13 +154,32 @@ import com.mediatek.mms.ipmessage.IIpMessageItemExt;
 import com.mediatek.mms.ipmessage.IIpMessageListItemExt;
 import com.mediatek.mms.callback.IMessageListItemCallback;
 import com.mediatek.mms.util.DrmUtilsEx;
+//[ramos] added by liting 20151016 for SIM sms manager 
+import com.android.mms.ramos.RamosPopupMenuWindow;
+import com.android.mms.ramos.RamosTimerActivity;
+import com.android.mms.data.ContactList;
+import android.view.WindowManager.LayoutParams;
+//[ramos] end liting
+//[ramos] begin liting 20160421 for the popupmenu of message linky
+import android.content.ClipboardManager;
+import android.content.ClipData;
+import java.util.LinkedHashMap;
+import android.provider.Settings;
+import android.text.util.Linkify;
+//[ramos] end liting
 
 /// @}
 /**
  * This class provides view of a message in the messages list.
  */
+//[ramos] modified by liting 20151016 for SIM sms manager
+/*
 public class MessageListItem extends LinearLayout implements
  SlideViewInterface, OnClickListener, IMessageListItemCallback {
+*/
+public class MessageListItem extends LinearLayout implements
+ SlideViewInterface, OnClickListener, IMessageListItemCallback ,RamosPopupMenuWindow.OnPopupItemClickListener {
+//[ramos] end liting        
     public static final String EXTRA_URLS = "com.android.mms.ExtraUrls";
 
     private static final String TAG = "MessageListItem";
@@ -273,6 +292,17 @@ public class MessageListItem extends LinearLayout implements
     private TextView mExpireText;
 
     private MessageListAdapter mMessageListAdapter;
+	//[ramos] added by liting 20151016 for SIM sms manager 
+    private TextView mContactTextView;
+	//[ramos] end liting
+    //[ramos] begin liting 20160421 for the popupmenu of message linky
+    List<SubscriptionInfo> mSubInfoList;
+    List<PhoneAccountHandle> phoneAccountsList;
+    private AlertDialog mCallSubDialog;
+    //[ramos] end liting
+	//[ramos] added by liting 20151110 for BUG0008316
+	private LinearLayout mTimer;
+	//[ramos] end liting
 
     IIpMessageListItemExt mIpMessageListItem;
 
@@ -389,6 +419,29 @@ public class MessageListItem extends LinearLayout implements
         mIpMessageListItem.onIpFinishInflate(mContext, mBodyTextView, this, mHandler, this);
 
         mBodyTextView = (TextView) findView(text_view);
+		//[ramos] added by liting 20151016 for SIM sms manager 
+		mContactTextView = (TextView) findViewById(R.id.contact_view);
+        if(null != mBodyTextView){
+        	mBodyTextView.setIsOEMWebUrl(true);
+        	mBodyTextView.setAutoLinkMask(Linkify.ALL);
+        }
+        mSimCard = (ImageView) findViewById(R.id.sim_card);
+        mItemContainer = findViewById(R.id.mms_layout_view_parent);
+		//[ramos] end liting
+		//[ramos] added by liting 20151110 for BUG0008316
+		mTimer = (LinearLayout)findViewById(R.id.timer);
+		
+		mTimer.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+
+				Intent timer = new Intent(mContext, RamosTimerActivity.class);
+				mContext.startActivity(timer);
+			
+			}
+		});
+		//[ramos] end liting
+
         mDateView = (TextView) findView(date_view);
         /// M: @{
         mSubStatus = (TextView) findView(sim_status);
@@ -465,6 +518,9 @@ public class MessageListItem extends LinearLayout implements
             }
             /// @}
             mSelectedBox.setVisibility(View.GONE);
+            //[ramos] added by liting 20151204 for BUG0010856
+            msgItem.setSelectedState(false);
+			//[ramos] end liting
         }
         /// M: @{
 
@@ -558,7 +614,10 @@ public class MessageListItem extends LinearLayout implements
         /// M:
         mExpireText.setText(msgSizeText + "\t\n" + mMessageItem.mTimestamp);
         mExpireText.setVisibility(View.VISIBLE);
-        MessageUtils.setSubIconAndLabel(mMessageItem.mSubId, null, mSubStatus);
+        //[ramos] begin liting 20160328
+        //MessageUtils.setSubIconAndLabel(mMessageItem.mSubId, null, mSubStatus);
+        MessageUtils.setSubIconAndLabel(mMessageItem.mSubId, null, mSubStatus, mSimCard);
+        //[ramos] end liting
         MmsLog.i(TAG, "bindNotifInd: uri = " + mMessageItem.mMessageUri +
                     ", position = " + mPosition + ", downloading Status ="
                     + mMessageItem.getMmsDownloadStatus());
@@ -788,7 +847,11 @@ public class MessageListItem extends LinearLayout implements
         mBodyTextView.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
         if (mAvatar != null) {
             if (mMessageItem.isSubMsg()) {
-                mAvatar.setVisibility(View.VISIBLE);
+				//[ramos] added by liting 20151016 for SIM sms manager 
+                //mAvatar.setVisibility(View.VISIBLE);
+                mAvatar.setVisibility(View.GONE);
+				mContactTextView.setText(mMessageItem.mContact);
+				//[ramos] end liting
                 boolean isSelf = Sms.isOutgoingFolder(mMessageItem.mBoxId);
                 String addr = isSelf ? null : mMessageItem.mAddress;
                 updateAvatarView(addr, isSelf);
@@ -796,6 +859,11 @@ public class MessageListItem extends LinearLayout implements
                 mAvatar.setVisibility(View.GONE);
             }
         }
+		//[ramos] added by liting 20151016 for SIM sms manager 
+		if (mMessageItem.isSubMsg()) {
+			mContactTextView.setText(mMessageItem.mContact);
+		}
+		//[ramos] end liting
 
         // Get and/or lazily set the formatted message from/on the
         // MessageItem.  Because the MessageItem instances come from a
@@ -868,7 +936,10 @@ public class MessageListItem extends LinearLayout implements
         /// M: @{
         //if (!mMessageItem.isSubMsg() && !TextUtils.isEmpty(formattedSubStatus)) {
         if (!mMessageItem.isSubMsg()) {
-            MessageUtils.setSubIconAndLabel(mMessageItem.mSubId, null, mSubStatus);
+            //[ramos] begin liting 20160328
+            //MessageUtils.setSubIconAndLabel(mMessageItem.mSubId, null, mSubStatus);
+            MessageUtils.setSubIconAndLabel(mMessageItem.mSubId, null, mSubStatus, mSimCard);
+            //[ramos] end liting
         } else {
             mSubStatus.setVisibility(View.GONE);
         }
@@ -1193,6 +1264,366 @@ public class MessageListItem extends LinearLayout implements
         }
     }
 
+	//[ramos] added by liting 20151016 for SIM sms manager 
+    private RamosPopupMenuWindow mPopupWindow;
+    private static final int MENU_ADD_ADDRESS_TO_NEW_CONTACT       = 33;
+    private static final int MENU_CREATE_CONTACT        = 122;
+    private Intent mAddContactIntent;   // Intent used to add a new contact
+    private Intent mNewContactIntent;	///[ramos] for new contact menu added by shuyong 20150824
+	private Contact contact;
+
+	public void onSimMessageListItemClick() {
+		mPopupWindow = new RamosPopupMenuWindow(mContext, mBodyTextView);
+		mPopupWindow.setOnPopupItemClickListener(this);
+		mPopupWindow.setTitle(mContext.getResources().getString(R.string.menu_option));
+		mPopupWindow.init();
+	
+		contact = Contact.get(mMessageItem.mAddress, false);
+		contact.reload(true);
+		if (!contact.existsInDatabase() && MessageUtils.canAddToContacts(contact)) {
+			mPopupWindow.clear();
+			mPopupWindow.addItem(MENU_CREATE_CONTACT, mContext.getResources().getString(R.string.contact_add), true);
+			mPopupWindow.addItem(MENU_ADD_ADDRESS_TO_NEW_CONTACT, mContext.getResources().getString(R.string.menu_new_contact), true);
+			mPopupWindow.show();
+		}
+	}
+
+    @Override
+    public boolean onPopupItemClick(int itemId) {
+        Log.d("litingnew","itemId: "+itemId);
+        switch (itemId) {
+			case MENU_CREATE_CONTACT:
+                mAddContactIntent = ConversationList.createAddContactIntent(contact.getNumber());
+                mContext.startActivity(mAddContactIntent);
+                break;
+			case MENU_ADD_ADDRESS_TO_NEW_CONTACT:
+            	mNewContactIntent = ConversationList.createNewContactIntent(contact.getNumber());
+                mContext.startActivity(mNewContactIntent);
+                break;
+//[ramos] begin liting 20160421 for the popupmenu of message linky
+            case MENU_CREATE_CONTACT_OPTION:
+                mAddContactIntent = ConversationList.createAddContactIntent(mItemPopupWindowOption.getTitle());
+                mContext.startActivity(mAddContactIntent);
+                break;
+            case MENU_SEND_MESSAGE:
+                Uri uri = Uri.parse("smsto:"+mItemPopupWindowOption.getTitle());
+                Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                intent.putExtra(Browser.EXTRA_APPLICATION_ID, mContext.getPackageName());
+                intent.setClassName(mContext, "com.android.mms.ui.SendMessageToActivity");
+                mContext.startActivity(intent);
+                break;
+            case MENU_COPY_CLIP:
+                copyToClipboard(mItemPopupWindowOption.getTitle());
+                break;
+            case MENU_CALL:
+//                Uri uri = Uri.parse(mNumber);
+//                Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+//                intent.putExtra(Browser.EXTRA_APPLICATION_ID, mContext.getPackageName());
+//                mContext.startActivity(intent);
+                dialRecipientRamosMenu(mItemPopupWindowOption.getTitle());
+                break;
+            case MENU_BROWSER_OPEN:
+                Log.d("litingnew","mItemPopupWindowOption.getTitle():  "+mItemPopupWindowOption.getTitle());
+                Log.d("litingnew","mBrower:  "+mBrower);
+                Uri uribro = Uri.parse(mBrower);
+                Intent intentbro = new Intent(Intent.ACTION_VIEW, uribro);
+                intentbro.putExtra(Browser.EXTRA_APPLICATION_ID, mContext.getPackageName());
+                mContext.startActivity(intentbro);
+                break;
+            default:
+                Log.d("litingnew","mItemPopupWindow.getItem(itemId): "+mItemPopupWindow.getItem(itemId));
+                onRamosPopupMenuWindowOption(itemId);//mItemPopupWindow.getItem(itemId));
+                break;
+//[ramos] end liting
+        }
+
+        return true;
+    }
+
+    //[ramos] begin liting 20160421 for the popupmenu of message linky
+    private static final int MODE_PHONE1_ONLY = 1;
+    private void dialRecipientRamosMenu(String number) {
+		mSubInfoList = SubscriptionManager.from(mContext).getActiveSubscriptionInfoList();
+        int mSubCount = (mSubInfoList != null && !mSubInfoList.isEmpty()) ? mSubInfoList.size() : 0;
+        TelephonyManager telephony = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
+        TelecomManager telecomManager = TelecomManager.from(mContext);
+		phoneAccountsList =telecomManager.getCallCapablePhoneAccounts();
+        if (telephony != null && telephony.isVoiceCapable()) {
+            if (mSubCount <= 1) {
+                Intent dialIntent ;
+                dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+                mContext.startActivity(dialIntent);
+            } else {
+                int currentSimMode = Settings.System.getInt(mContext.getContentResolver(),
+                        Settings.System.MSIM_MODE_SETTING, -1);
+                boolean SimMode1 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(0).getSimSlotIndex())) != 0;
+                boolean SimMode2 = (currentSimMode & (MODE_PHONE1_ONLY << mSubInfoList.get(1).getSimSlotIndex())) != 0;
+                if( SimMode1 && SimMode2) {
+                    showCallSubSelectedDialog();                   
+                } else if (SimMode1) {
+                    dialRecipientSIM1(number);
+                } else if (SimMode2) {
+                    dialRecipientSIM2(number);
+                }
+            }
+        }
+
+    }
+    
+	private void dialRecipientSIM1(String number) {
+        Intent dialIntent ;
+		getTelecomManager().setUserSelectedOutgoingPhoneAccount(phoneAccountsList.get(0));
+        dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+        mContext.startActivity(dialIntent);		
+	}
+	
+	private void dialRecipientSIM2(String number) {
+        Intent dialIntent ;
+		getTelecomManager().setUserSelectedOutgoingPhoneAccount(phoneAccountsList.get(1));
+        dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+        mContext.startActivity(dialIntent);
+	}
+    
+    private TelecomManager getTelecomManager() {
+        return (TelecomManager) mContext.getSystemService(Context.TELECOM_SERVICE);
+    }
+
+    private void showCallSubSelectedDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+        mCallSubDialog = builder.create();
+        mCallSubDialog.show();
+        WindowManager.LayoutParams layoutParams;
+        layoutParams = mCallSubDialog.getWindow().getAttributes();
+        layoutParams.width = getResources().getDimensionPixelSize(R.dimen.ramos_dialog_width);
+        mCallSubDialog.getWindow().setAttributes(layoutParams); 
+        mCallSubDialog.setContentView(R.layout.ramos_dial_dialog);
+        mCallSubDialog.setCancelable(true);
+        mCallSubDialog.setCanceledOnTouchOutside(true);
+        LinearLayout mCard1 = (LinearLayout) mCallSubDialog.findViewById(R.id.ramos_card_one);
+        mCard1.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    dialRecipientSIM1(mItemPopupWindowOption.getTitle());
+                    mCallSubDialog.dismiss();
+                }
+            });
+        LinearLayout mCard2 = (LinearLayout) mCallSubDialog.findViewById(R.id.ramos_card_two);
+        mCard2.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    dialRecipientSIM2(mItemPopupWindowOption.getTitle());
+                    mCallSubDialog.dismiss();
+                }
+            });
+        TextView mTextCard1 = (TextView) mCallSubDialog.findViewById(R.id.btn_sim1_call);
+        TextView mTextCard2 = (TextView) mCallSubDialog.findViewById(R.id.btn_sim2_call);
+        mTextCard1.setText(mSubInfoList.get(0).getDisplayName().toString());
+        mTextCard2.setText(mSubInfoList.get(1).getDisplayName().toString());
+    }
+    
+
+    private RamosPopupMenuWindow mItemPopupWindow;
+    private RamosPopupMenuWindow mItemPopupWindowOption;
+    private static final int MENU_CREATE_CONTACT_OPTION        = 123;
+    private static final int MENU_COPY_CLIP        = 124;
+    private static final int MENU_CALL        = 125;
+    private static final int MENU_BROWSER_OPEN        = 126;
+    private static final int MENU_SEND_MESSAGE        = 127;
+    Map<Integer, String> mListItem;
+    private String mBrower;
+    public void onRamosPopupMenuWindow(ArrayList<String> ramosurls) {
+        final String telPrefix = "tel:";
+        final String mailPrefix = "mailto";
+        final String timePrefix = "time";
+        mListItem = new LinkedHashMap<Integer, String>();
+        mItemPopupWindow = new RamosPopupMenuWindow(mContext, mBodyTextView);
+        mItemPopupWindow.setOnPopupItemClickListener(this);
+        mItemPopupWindow.setTitle(mContext.getResources().getString(R.string.menu_option));
+        mItemPopupWindow.init();
+        mItemPopupWindow.clear();
+        String url = "";
+        
+        contact = Contact.get(mMessageItem.mAddress, false);
+        contact.reload(true);
+        Log.d("litingnew","mMessageItem.mAddress:  "+mMessageItem.mAddress);
+        if (!contact.existsInDatabase() && MessageUtils.canAddToContacts(contact) && mMessageItem.isSubMsg()) {
+            Log.d("litingnew","1491");
+            url = "tel:" + mMessageItem.mAddress;
+            if (PhoneNumberUtils.formatNumber(url.substring(telPrefix.length()), mDefaultCountryIso) != null) {
+                ramosurls.add("tel:" + mMessageItem.mAddress);
+            }
+        }
+        Log.d("litingnew","ramosurls.size():  "+ramosurls.size());
+        if (ramosurls.size() == 1) {
+            onRamosPopupMenuWindowSingleOption(ramosurls.get(0));
+            return;
+        }
+        Log.d("litingnew","1499");
+        for (int i = 0; i < ramosurls.size(); i++) {
+            url = ramosurls.get(i);
+            Log.d("litingnew","url:  "+url+"   i:  "+i);
+            mListItem.put(i, url);
+            if (url.startsWith(telPrefix)) {
+                url = PhoneNumberUtils.formatNumber(
+                                url.substring(telPrefix.length()), mDefaultCountryIso);
+            } else if (url.startsWith(timePrefix)) {
+                url = url.substring(timePrefix.length() + 1, url.length());
+            } else {//if (url.startsWith(mailPrefix)) {
+                String uu = url.substring(mailPrefix.length() + 1, url.length());
+                uu = Uri.encode(uu);
+                uu = mailPrefix + ":" + uu;
+                MailTo mt = MailTo.parse(uu);
+                url = mt.getTo();
+            }
+            mItemPopupWindow.addItem(i, url, true);
+        }
+        mItemPopupWindow.show();
+    }
+
+    public void onRamosPopupMenuWindowOption(int item){ //String url) {
+        final String telPrefix = "tel:";
+        final String mailPrefix = "mailto";
+        final String timePrefix = "time";
+        String url = mListItem.get(item);
+        Log.d("litingnew","url:   "+url);
+        String mTime = null;
+        String mNumber = null;
+        String mMail = null;
+        if (url.startsWith(timePrefix)) {
+            mTime = url.substring(timePrefix.length() + 1, url.length());
+        } else {
+            mNumber = PhoneNumberUtils.formatNumber(
+                    url.substring(telPrefix.length()), mDefaultCountryIso);
+            mMail = url.substring(mailPrefix.length() + 1, url.length());
+        }
+        mItemPopupWindowOption = new RamosPopupMenuWindow(mContext, mBodyTextView);
+        mItemPopupWindowOption.setOnPopupItemClickListener(this);
+        if (mNumber != null) {
+            mItemPopupWindowOption.setTitle(mNumber);
+        } else if (mMail != null) {
+            mItemPopupWindowOption.setTitle(mMail);
+        } else if (mTime != null) {
+            mItemPopupWindowOption.setTitle(mTime);
+        } else {
+            mItemPopupWindowOption.setTitle(url);
+        }
+        mItemPopupWindowOption.init();	
+        mItemPopupWindowOption.clear();
+        if (url.startsWith(telPrefix)) {
+            mNumber= url;
+            mItemPopupWindowOption.addItem(MENU_CREATE_CONTACT_OPTION, mContext.getResources().getString(R.string.contact_add), true);
+            mItemPopupWindowOption.addItem(MENU_SEND_MESSAGE, mContext.getResources().getString(R.string.message_option_send_mms), true);
+            mItemPopupWindowOption.addItem(MENU_CALL, mContext.getResources().getString(R.string.menu_call), true);
+            mItemPopupWindowOption.addItem(MENU_COPY_CLIP, mContext.getResources().getString(R.string.menu_copy_message), true);
+        } else if (url.startsWith(timePrefix)) {
+            mItemPopupWindowOption.addItem(MENU_COPY_CLIP, mContext.getResources().getString(R.string.menu_copy_message), true);
+        } else {
+            mBrower = url;
+            if (url.startsWith(mailPrefix)) {
+                mItemPopupWindowOption.addItem(MENU_BROWSER_OPEN, mContext.getResources().getString(R.string.message_option_send_email), true);
+            } else {
+                mItemPopupWindowOption.addItem(MENU_BROWSER_OPEN, mContext.getResources().getString(R.string.message_option_open_browser), true);
+            }
+            mItemPopupWindowOption.addItem(MENU_COPY_CLIP, mContext.getResources().getString(R.string.menu_copy_message), true);
+            mItemPopupWindowOption.addItem(MENU_CREATE_CONTACT_OPTION, mContext.getResources().getString(R.string.contact_add), true);
+        }
+        mItemPopupWindowOption.show();
+    }
+    
+    public void onRamosPopupMenuWindowSingleOption(String url){ //String url) {
+        final String telPrefix = "tel:";
+        final String mailPrefix = "mailto";
+        final String timePrefix = "time";
+        Log.d("litingnew","onRamosPopupMenuWindowSingleOption-url:   "+url);
+        String mTime = null;
+        String mNumber = null;
+        String mMail = null;
+        if (url.startsWith(timePrefix)) {
+            mTime = url.substring(timePrefix.length() + 1, url.length());
+        } else {
+            mNumber = PhoneNumberUtils.formatNumber(
+                    url.substring(telPrefix.length()), mDefaultCountryIso);
+            mMail = url.substring(mailPrefix.length() + 1, url.length());
+        }
+        Log.d("litingnew","onRamosPopupMenuWindowSingleOption-mTime:   "+mTime);
+        mItemPopupWindowOption = new RamosPopupMenuWindow(mContext, mBodyTextView);
+        mItemPopupWindowOption.setOnPopupItemClickListener(this);
+        if (mNumber != null) {
+            mItemPopupWindowOption.setTitle(mNumber);
+        } else if (mMail != null) {
+            mItemPopupWindowOption.setTitle(mMail);
+        } else if (mTime != null) {
+            mItemPopupWindowOption.setTitle(mTime);
+        } else {
+            mItemPopupWindowOption.setTitle(url);
+        }
+        mItemPopupWindowOption.init();	
+        mItemPopupWindowOption.clear();
+        if (url.startsWith(telPrefix)) {
+            mNumber= url;
+            mItemPopupWindowOption.addItem(MENU_CREATE_CONTACT_OPTION, mContext.getResources().getString(R.string.contact_add), true);
+            mItemPopupWindowOption.addItem(MENU_SEND_MESSAGE, mContext.getResources().getString(R.string.message_option_send_mms), true);
+            mItemPopupWindowOption.addItem(MENU_CALL, mContext.getResources().getString(R.string.menu_call), true);
+            mItemPopupWindowOption.addItem(MENU_COPY_CLIP, mContext.getResources().getString(R.string.menu_copy_message), true);
+        } else if (url.startsWith(timePrefix)) {
+            mItemPopupWindowOption.addItem(MENU_COPY_CLIP, mContext.getResources().getString(R.string.menu_copy_message), true);
+        } else {
+            mBrower = url;
+            if (url.startsWith(mailPrefix)) {
+                mItemPopupWindowOption.addItem(MENU_BROWSER_OPEN, mContext.getResources().getString(R.string.message_option_send_email), true);
+            } else {
+                mItemPopupWindowOption.addItem(MENU_BROWSER_OPEN, mContext.getResources().getString(R.string.message_option_open_browser), true);
+            }
+            mItemPopupWindowOption.addItem(MENU_COPY_CLIP, mContext.getResources().getString(R.string.menu_copy_message), true);
+            mItemPopupWindowOption.addItem(MENU_CREATE_CONTACT_OPTION, mContext.getResources().getString(R.string.contact_add), true);
+        }
+        mItemPopupWindowOption.show();
+    }
+	
+    private void copyToClipboard(String str) {
+        ClipboardManager clipboard = (ClipboardManager)mContext.getSystemService(Context.CLIPBOARD_SERVICE);
+        clipboard.setPrimaryClip(ClipData.newPlainText(null, str));
+    }
+    //[ramos] end liting
+
+
+	//[ramos]added by liting 20151028 for BUG0009291
+	private void showResendConfirmDialog() {
+		
+		AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+		final AlertDialog mDiscardDialog = builder.create();
+		mDiscardDialog.show();
+		WindowManager.LayoutParams layoutParams;
+		layoutParams = mDiscardDialog.getWindow().getAttributes();
+		layoutParams.width = mContext.getResources().getDimensionPixelSize(R.dimen.ramos_dialog_width);//(int) (d.getWidth());
+		//layoutParams.height = mContext.getResources().getDimensionPixelSize(R.dimen.ramos_dialog_height);//(int) (d.getWidth());
+		mDiscardDialog.getWindow().setAttributes(layoutParams); 
+		mDiscardDialog.setContentView(R.layout.ramos_dialog_delete);
+		mDiscardDialog.setCancelable(true);
+		mDiscardDialog.setCanceledOnTouchOutside(true);
+		TextView title = (TextView) mDiscardDialog.findViewById(R.id.title);
+		title.setSingleLine(true);
+		title.setText(R.string.send_message_fail);
+		TextView message = (TextView) mDiscardDialog.findViewById(R.id.message);
+		message.setText(R.string.resend_message);
+		Button btnLeft = (Button) mDiscardDialog.findViewById(R.id.btn_left);
+		btnLeft.setText(R.string.no);
+		btnLeft.setOnClickListener(new View.OnClickListener() {
+				public void onClick(View v) {
+					mDiscardDialog.dismiss();
+				}
+			});
+		Button btnRight = (Button) mDiscardDialog.findViewById(R.id.btn_right);
+		btnRight.setText(R.string.resend);
+		btnRight.setOnClickListener(new View.OnClickListener() {
+				public void onClick(View v) {
+					sendMessage(mMessageItem, MSG_LIST_EDIT);
+					mDiscardDialog.dismiss();
+				}
+			});
+
+	}
+	//[ramos] end liting 20151028 for BUG0009291
+	//[ramos] end liting
+
     public void onMessageListItemClick() {
         if (mMessageItem == null) {
             MmsLog.e(TAG, "onMessageListItemClick(): Message Item is null!");
@@ -1232,7 +1663,10 @@ public class MessageListItem extends LinearLayout implements
             // Assuming the current message is a failed one, reload it into the
             // compose view so
             // the user can resend it.
-            sendMessage(mMessageItem, MSG_LIST_EDIT);
+				//[ramos]added by liting 20151028 for BUG0009291
+                //sendMessage(mMessageItem, MSG_LIST_EDIT);
+				showResendConfirmDialog();
+				//[ramos] end liting
             return;
         }
 
@@ -1240,6 +1674,9 @@ public class MessageListItem extends LinearLayout implements
         final URLSpan[] spans = mBodyTextView.getUrls();
         /// M: @{
         final java.util.ArrayList<String> urls = MessageUtils.extractUris(spans);
+        //[ramos] begin liting 20160421 for the popupmenu of message linky
+        final java.util.ArrayList<String> ramosurls = MessageUtils.extractUris(spans);
+        //[ramos] end liting
         final String telPrefix = "tel:";
         String url = "";
         boolean isTel = false;
@@ -1255,10 +1692,18 @@ public class MessageListItem extends LinearLayout implements
         }
         /// @}
         if (spans.length == 0) {
-            sendMessage(mMessageItem, MSG_LIST_DETAILS);    // show the message details dialog
+			//[ramos] modified by liting 20151114 for RAMOS_STYLE
+            //sendMessage(mMessageItem, MSG_LIST_DETAILS);    // show the message details dialog
+			//sClickCanResponse = true;
+			//[ramos] end liting
         /// M: @{
         //} else if (spans.length == 1) {
-        } else if (spans.length == 1 && !isTel) {
+//[ramos] begin liting 20160421 for the popupmenu of message linky
+        //} else if (spans.length == 1 && !isTel) {
+        }else if (spans.length == 1 && !mMessageItem.isSubMsg()) {
+            onRamosPopupMenuWindowSingleOption(ramosurls.get(0));
+        } else if (spans.length == 1 && !isTel && !mMessageItem.isSubMsg()) {
+//[ramos] end liting
         /// @}
             /*
             Uri uri = Uri.parse(spans[0].getURL());
@@ -1268,6 +1713,9 @@ public class MessageListItem extends LinearLayout implements
             mContext.startActivity(intent);
             */
             mOpMessageListItemExt.openUrl(mContext, spans[0].getURL());
+			//[ramos] modified by liting 20151114 for RAMOS_STYLE
+			//sClickCanResponse = true;
+			//[ramos] end liting
         /** M: delete google default code @{
         } else if (spans.length == 1) {
             spans[0].onClick(mBodyTextView);
@@ -1349,7 +1797,10 @@ public class MessageListItem extends LinearLayout implements
                     return v;
                 }
             };
-
+//[ramos] begin liting 20160421 for the popupmenu of message linky
+            onRamosPopupMenuWindow(ramosurls);
+/*
+//[ramos] end liting
             AlertDialog.Builder b = new AlertDialog.Builder(mContext);
 
             DialogInterface.OnClickListener click = new DialogInterface.OnClickListener() {
@@ -1365,7 +1816,11 @@ public class MessageListItem extends LinearLayout implements
                         if (urls.get(which).startsWith("smsto:")) {
                             intent.setClassName(mContext, "com.android.mms.ui.SendMessageToActivity");
                         }
-                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+                        //[ramos] deleted by liting 20151127 for BUG0008825&&BUG0010610
+                        else {
+                      		intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+                        }
+                        //[ramos] end liting
                         mContext.startActivity(intent);
                         if (urls.get(which).startsWith("smsto:")) {
                             intent.setClassName(mContext, "com.android.mms.ui.SendMessageToActivity");
@@ -1389,6 +1844,9 @@ public class MessageListItem extends LinearLayout implements
             });
 
             b.show();
+//[ramos] begin liting 20160421 for the popupmenu of message linky
+*/
+//[ramos] end liting
         }
     }
 
@@ -1491,6 +1949,23 @@ public class MessageListItem extends LinearLayout implements
 
     private void drawRightStatusIndicator(MessageItem msgItem) {
         // Locked icon
+		//[ramos] added by liting 20151028 for BUG0009522 & BUG0009448
+		int bottom = mItemContainer.getPaddingBottom();
+		int top = mItemContainer.getPaddingTop();
+		int right = mItemContainer.getPaddingRight();
+		int left = mItemContainer.getPaddingLeft();
+		int resId = MessageUtils.getStatusResourceId(mContext, msgItem);
+		if ((mSelectedBox == null || mSelectedBox.getVisibility() == View.GONE || !mSelectedBox.isChecked())
+		    && !msgItem.isSubMsg()) {
+		    if (resId > 0) {
+    			mItemContainer.setBackgroundResource(R.drawable.ramos_listitem_background_send);
+    			mItemContainer.setPadding(left, top, right, bottom);
+		    } else {
+    			mItemContainer.setBackgroundResource(R.drawable.ramos_listitem_background_recv);
+    			mItemContainer.setPadding(left, top, right, bottom);
+		    }
+		}
+		//[ramos] end liting
         if (msgItem.mLocked) {
             mLockedIndicator.setImageDrawable(mContext.getResources().getDrawable(
                     R.drawable.ic_lock_message_sms));
@@ -1503,9 +1978,17 @@ public class MessageListItem extends LinearLayout implements
         if ((msgItem.isOutgoingMessage() && msgItem.isFailedMessage())
                 ||
                 msgItem.mDeliveryStatus == MessageItem.DeliveryStatus.FAILED) {
+			//[ramos] added by liting 20151028 for BUG0009522 & BUG0009448
+/*
             mDeliveredIndicator.setImageDrawable(mContext.getResources().getDrawable(
                     R.drawable.ic_list_alert_sms_failed));
             mDeliveredIndicator.setVisibility(View.VISIBLE);
+*/
+            if (mSelectedBox == null || mSelectedBox.getVisibility() == View.GONE || !mSelectedBox.isChecked()) {
+    			mItemContainer.setBackgroundResource(R.drawable.ramos_listitem_background_fail);
+    			mItemContainer.setPadding(left, top, right, bottom);
+            }
+            //[ramos] end liting 20151123
         } else if (msgItem.isSms() &&
                 msgItem.mDeliveryStatus == MessageItem.DeliveryStatus.RECEIVED) {
             /// M: @{
@@ -1516,15 +1999,51 @@ public class MessageListItem extends LinearLayout implements
             mDeliveredIndicator.setImageDrawable(mContext.getResources().getDrawable(
                     R.drawable.im_meg_status_reach));
             mDeliveredIndicator.setVisibility(View.VISIBLE);
+            //[ramos] added by liting 20151103 for BUG0009522 & BUG0009448 & BUG0012299
+            if ((mSelectedBox == null || mSelectedBox.getVisibility() == View.GONE || !mSelectedBox.isChecked())
+                && !msgItem.isSubMsg()) {
+                if (resId > 0) {
+                    mItemContainer.setBackgroundResource(R.drawable.ramos_listitem_background_send);
+                    mItemContainer.setPadding(left, top, right, bottom);
+                } else {
+                    mItemContainer.setBackgroundResource(R.drawable.ramos_listitem_background_recv);
+                    mItemContainer.setPadding(left, top, right, bottom);
+                }
+            }
+            //[ramos] end liting
         } else {
             /// M: Add new status icon for MMS or SMS. @{
-            int resId = MessageUtils.getStatusResourceId(mContext, msgItem);
+			//[ramos] deleted by liting 20151028 for BUG0009522 & BUG0009448 move to top
+            //int resId = MessageUtils.getStatusResourceId(mContext, msgItem);
+			//[ramos] end liting
             if (resId > 0) {
                 mDeliveredIndicator.setClickable(false);
                 mDeliveredIndicator.setImageDrawable(mContext.getResources().getDrawable(resId));
 //                mDeliveredIndicator.setImageResource(resId);
                 mDeliveredIndicator.setVisibility(View.VISIBLE);
+				//[ramos] added by liting 20151103 for BUG0009522 & BUG0009448
+                if ((mSelectedBox == null || mSelectedBox.getVisibility() == View.GONE || !mSelectedBox.isChecked())
+                    && !msgItem.isSubMsg()) {
+    				mItemContainer.setBackgroundResource(R.drawable.ramos_listitem_background_send);
+    				mItemContainer.setPadding(left, top, right, bottom);
+                }
+				//[ramos] end liting
+				//[ramos] added by liting 20151110 for BUG0008316
+				if (msgItem.mBoxId == msgItem.MESSAGE_TYPE_TIMER) {
+					mTimer.setVisibility(View.VISIBLE);
+				} else {
+					mTimer.setVisibility(View.GONE);
+				}
+				//[ramos] end liting
             } else {
+				//[ramos] added by liting 20151110 for BUG0008316
+				mTimer.setVisibility(View.GONE);
+                if ((mSelectedBox == null || mSelectedBox.getVisibility() == View.GONE || !mSelectedBox.isChecked())
+                    && !msgItem.isSubMsg()) {
+    				mItemContainer.setBackgroundResource(R.drawable.ramos_listitem_background_recv);
+    				mItemContainer.setPadding(left, top, right, bottom);
+                }
+				//[ramos] end liting
                 mDeliveredIndicator.setVisibility(View.GONE);
             }
             /// @}
@@ -1715,6 +2234,10 @@ public class MessageListItem extends LinearLayout implements
     public static final int ITEM_CLICK          = 5;
     static final int ITEM_MARGIN         = 50;
     private TextView mSubStatus;
+	//[ramos] added by liting 20151021 for Dual Card
+    private ImageView mSimCard;
+    private View mItemContainer;
+	//[ramos] end liting
     public CheckBox mSelectedBox;
 
     private CharSequence formatTimestamp(MessageItem msgItem, String timestamp) {
@@ -1758,7 +2281,14 @@ public class MessageListItem extends LinearLayout implements
 //            mSelectedBox.setBackgroundDrawable(null);
 //            mMessageBlock.setBackgroundDrawable(null);
 //            mDateView.setBackgroundDrawable(null);
+            //[ramos] modified by liting 2151121 for 0010132&0008840 and  the background of message when selected
+            mSelectedBox.setButtonDrawable(R.drawable.ramos_btn_select_on);
+            setBackgroundResourceRamos(mMessageItem);
+            //[ramos] end liting
         } else {
+            //[ramos] modified by liting 2151121 for 0010132&0008840 and  the background of message when selected
+            mSelectedBox.setButtonDrawable(R.drawable.ramos_btn_select_off);
+            //[ramos] end liting
               mSelectedBox.setChecked(false);
 //            mSelectedBox.setBackgroundResource(R.drawable.listitem_background);
 //            mMessageBlock.setBackgroundResource(R.drawable.listitem_background);
@@ -1766,6 +2296,29 @@ public class MessageListItem extends LinearLayout implements
         }
         setBackgroundDrawable(null);
     }
+
+    //[ramos] modified by liting 20151123 for the background of message when selected
+    private void setBackgroundResourceRamos(MessageItem msgItem) {
+        int bottom = mItemContainer.getPaddingBottom();
+        int top = mItemContainer.getPaddingTop();
+        int right = mItemContainer.getPaddingRight();
+        int left = mItemContainer.getPaddingLeft();
+        int resId = MessageUtils.getStatusResourceId(mContext, msgItem);
+        if (mSelectedBox.isChecked() && !msgItem.isSubMsg()) {
+            if ((msgItem.isOutgoingMessage() && msgItem.isFailedMessage()) ||
+                    msgItem.mDeliveryStatus == MessageItem.DeliveryStatus.FAILED) {
+                mItemContainer.setBackgroundResource(R.drawable.chatfail_bg_pressed);
+            } else {
+                if (resId > 0) {
+                    mItemContainer.setBackgroundResource(R.drawable.chatto_bg_pressed);
+                } else {
+                    mItemContainer.setBackgroundResource(R.drawable.chatfrom_bg_pressed);
+                }
+            }
+            mItemContainer.setPadding(left, top, right, bottom);
+        }
+    }
+    //[ramos] end liting
 
     public void bindDefault(MessageItem msgItem, boolean isLastItem) {
         MmsLog.d(M_TAG, "bindDefault()");
@@ -1824,7 +2377,10 @@ public class MessageListItem extends LinearLayout implements
 //            formattedSubStatus = msgItem.getCachedFormattedSubStatus();
             //if (!msgItem.isSubMsg() && !TextUtils.isEmpty(formattedSubStatus)) {
             if (!msgItem.isSubMsg() && mMessageItem != null) {
-                MessageUtils.setSubIconAndLabel(mMessageItem.mSubId, null, mSubStatus);
+                //[ramos] begin liting 20160328
+                //MessageUtils.setSubIconAndLabel(mMessageItem.mSubId, null, mSubStatus);
+                MessageUtils.setSubIconAndLabel(mMessageItem.mSubId, null, mSubStatus, mSimCard);
+                //[ramos] end liting
             }
         } else {
             MmsLog.e(TAG, "message item is null");
@@ -2054,6 +2610,9 @@ public class MessageListItem extends LinearLayout implements
                 mTimeDivider.setVisibility(View.GONE);
             }
         }
+        //[ramos] added by liting 20151212 for RAMOS_STYLE BUG0011463
+        mTimeDivider.setVisibility(View.GONE);
+        //[ramos] end liting
     }
 
     @Override
@@ -2162,7 +2721,10 @@ public class MessageListItem extends LinearLayout implements
     // Add for IpMessage callback
 
     public void setSubDateView(String subName) {
-        MessageUtils.setSubIconAndLabel(mMessageItem.mSubId, subName, mSubStatus);
+        //[ramos] begin liting 20160328
+        //MessageUtils.setSubIconAndLabel(mMessageItem.mSubId, null, mSubStatus);
+        MessageUtils.setSubIconAndLabel(mMessageItem.mSubId, null, mSubStatus, mSimCard);
+        //[ramos] end liting
 
         if (mMessageItem.isFailedMessage()
                 || (!mMessageItem.isSending() && TextUtils.isEmpty(mMessageItem.mTimestamp))) {

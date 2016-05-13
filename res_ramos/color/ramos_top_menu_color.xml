@@ -1,0 +1,6 @@
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="@color/ramos_menu_color_disabled" android:state_enabled="false"></item>
+    <item android:color="@color/ramos_menu_color_pressed" android:state_pressed="true"></item>
+    <item android:color="@color/ramos_top_menu_color_enabled"></item>
+</selector>
+   

@@ -142,6 +142,7 @@
                 <data android:mimeType="vnd.android.cursor.dir/cb-messages" />
             </intent-filter>
         </activity>
+        <!-- [ramos] modified by liting 20151112 for screenOrientation="portrait" -->
         <activity android:name=".ui.ConversationList"
                   android:label="@string/app_label"
                   android:exported="true"
@@ -149,7 +150,8 @@
                   android:configChanges="orientation|screenSize|keyboardHidden|mcc|mnc"
                   android:theme="@style/ConversationListTheme"
                   android:uiOptions="splitActionBarWhenNarrow"
-                  android:launchMode="singleTop">
+                  android:launchMode="singleTop"
+                  android:screenOrientation="portrait">
         </activity>
 
         <!-- Dialog mode android:theme="@style/SmsDlgScreen"-->
@@ -222,12 +224,15 @@
             </intent-filter>
         </activity>
          <!-- wap push end -->
-
+        <!-- [ramos] modified by liting 20151112 for screenOrientation="portrait" -->
+        <!-- [ramos] modified by liting 20160401 for BUG0014478 android:launchMode="singleTask" -->
         <activity android:name=".ui.ComposeMessageActivity"
                   android:configChanges="orientation|screenSize|keyboardHidden|mcc|mnc"
                   android:windowSoftInputMode="stateHidden"
                   android:theme="@style/MmsTheme"
                   android:hardwareAccelerated="true"
+                  android:screenOrientation="portrait"
+                  android:launchMode="singleTask"
                   android:parentActivityName=".ui.ConversationList">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -345,20 +350,24 @@
             android:theme="@android:style/Theme.Holo.Dialog">
         </activity>
 
+        <!-- [ramos] modified by liting 20160331 for screenOrientation="portrait" -->
         <activity android:name=".ui.SlideshowEditActivity"
         	android:configChanges="orientation|screenSize|keyboardHidden"
             android:theme="@style/MmsTheme"
-            android:label="@string/edit_slideshow_activity" />
+            android:label="@string/edit_slideshow_activity"
+            android:screenOrientation="portrait"/>
 
         <activity android:name=".ui.RecipientListActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:theme="@style/MmsTheme"
             android:label="@string/recipient_list_activity" />
 
+        <!-- [ramos] modified by liting 20160408 for screenOrientation="portrait" -->
         <activity android:name=".ui.SlideEditorActivity"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/MmsTheme"
             android:configChanges="orientation|screenSize|keyboardHidden"
+            android:screenOrientation="portrait"
             android:label="@string/edit_slide_activity" />
 
         <activity android:name=".ui.SlideshowActivity"
@@ -687,22 +696,24 @@
             android:theme="@style/MmsTheme"
             android:configChanges="orientation|screenSize|keyboardHidden">
         </activity>
+        <!-- [ramos] modified by liting 20150929 MmsTheme -> Theme.Mms.Settings -->
         <activity android:name="com.mediatek.setting.SmsPreferenceActivity"
-            android:theme="@style/MmsTheme"
+            android:theme="@style/Theme.Mms.Settings"
             android:configChanges="orientation|screenSize|keyboardHidden|mcc|mnc">
         </activity>
         <activity android:name="com.mediatek.setting.MmsPreferenceActivity"
-            android:theme="@style/MmsTheme"
+            android:theme="@style/Theme.Mms.Settings"
             android:configChanges="orientation|screenSize|keyboardHidden|mcc|mnc">
         </activity>
         <activity android:name="com.mediatek.setting.NotificationPreferenceActivity"
-            android:theme="@style/MmsTheme"
+            android:theme="@style/Theme.Mms.Settings"
             android:configChanges="orientation|screenSize|keyboardHidden|mcc|mnc">
         </activity>
         <activity android:name="com.mediatek.setting.GeneralPreferenceActivity"
-            android:theme="@style/MmsTheme"
+            android:theme="@style/Theme.Mms.Settings"
             android:configChanges="orientation|screenSize|keyboardHidden|mcc|mnc">
         </activity>
+        <!-- [ramos] end liting -->
         <activity android:name="com.mediatek.setting.WallpaperChooser">
         </activity>
         <activity android:name=".widget.MmsWidgetProxyActivity"
@@ -787,5 +798,29 @@
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:label="@string/app_label"
             android:excludeFromRecents="true"/>
+        <!-- [ramos] added by liting 20150821 --> 
+        <activity android:name=".ramos.RamosSearchMms"
+            android:windowSoftInputMode="stateAlwaysVisible"
+            android:screenOrientation="portrait"
+            android:theme="@style/Transparent"  />
+        <!-- [ramos] end liting -->
+        <!-- [ramos] added by shuyong 20150907 -->
+        <activity android:name=".ramos.RamosEditQuickActivity"
+            android:parentActivityName=".ui.ComposeMessageActivity" 
+            android:screenOrientation="portrait"
+            android:theme="@style/MmsTheme" />    		
+        <activity android:name=".ramos.RamosViewAttachmentActivity"
+            android:screenOrientation="portrait"
+	        android:theme="@android:style/Theme.Black.NoTitleBar" />
+        <activity android:name=".ramos.RamosRecipientListActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:theme="@style/MmsTheme"
+            android:label="@string/recipient_list_activity" />
+        <!-- [ramos] end -->
+        <!-- [ramos] added by liting 20151110 for BUG0008316 -->
+        <activity android:name=".ramos.RamosTimerActivity"
+            android:parentActivityName=".ui.ComposeMessageActivity" 
+            android:theme="@style/MmsTheme" />
+        <!-- [ramos] end -->
     </application>
 </manifest>

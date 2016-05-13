@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"    
+    android:layout_width="wrap_content"
+    android:layout_height="@dimen/ramos_dialog_height_title"
+    android:background="@drawable/panel_back"
+    android:gravity="center"
+    android:visibility="gone">
+    <LinearLayout
+        android:id="@+id/sub_sim1"
+        android:layout_width="154dip"
+        android:layout_height="36dip"
+        android:background="@drawable/ramos_sms_bg_sim"
+        android:layout_gravity="center_vertical"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/sub_sim1_text"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent" 
+            android:maxLines="1"
+            android:singleLine="true"
+            android:textSize="16sp"
+            android:textColor="@color/ramos_sub_sim_nor"
+            android:layout_alignParentLeft="true"
+            android:drawableLeft="@drawable/sms_icon_sim1"
+            android:drawablePadding="3dip"
+            android:text="@string/sub_choose_sim1"
+            android:layout_gravity="center_vertical"
+            android:gravity="center"/>
+    </LinearLayout>
+    
+    <LinearLayout
+        android:id="@+id/sub_sim2"
+        android:layout_width="154dip"
+        android:layout_height="36dip"
+        android:background="@drawable/ramos_sms_bg_sim"
+        android:layout_gravity="center_vertical"
+        android:gravity="center"
+        android:layout_toRightOf="@id/sub_sim1"
+        android:layout_marginStart="20dip">
+
+    
+        <TextView
+            android:id="@+id/sub_sim2_text"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent" 
+            android:maxLines="1"
+            android:singleLine="true"
+            android:textSize="16sp"
+            android:textColor="@color/ramos_sub_sim_nor"
+            android:drawableLeft="@drawable/sms_icon_sim2"
+            android:drawablePadding="3dip"
+            android:text="@string/sub_choose_sim2"
+            android:layout_gravity="center_vertical"
+            android:gravity="center"/>
+    </LinearLayout>
+
+</RelativeLayout>

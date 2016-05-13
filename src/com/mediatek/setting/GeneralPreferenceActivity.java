@@ -88,6 +88,11 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+//[ramos]added by liting 20150929
+import android.widget.TextView;
+import android.widget.LinearLayout;
+import android.preference.SwitchPreference;
+//[ramos]end liting
 
 /**
  * With this activity, users can set preferences for MMS and SMS and
@@ -161,8 +166,9 @@ public class GeneralPreferenceActivity extends PreferenceActivity
 
     private String[] mFontSizeValues;
 
-    private CheckBoxPreference mShowEmailPref;
-
+	//[ramos] modified by liting 20150929 CheckBoxPreference -> SwitchPreference
+    private SwitchPreference mShowEmailPref;
+	//[ramos] end liting
     private static final int FONT_SIZE_DIALOG = 10;
 
     public static final String FONT_SIZE_SETTING = "pref_key_message_font_size";
@@ -243,6 +249,23 @@ public class GeneralPreferenceActivity extends PreferenceActivity
         ActionBar actionBar = getActionBar();
         actionBar.setTitle(getResources().getString(R.string.actionbar_general_setting));
         actionBar.setDisplayHomeAsUpEnabled(true);
+		//[ramos]modified by liting 20150918
+		actionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
+		actionBar.setCustomView(R.layout.ramos_actionbar);
+        TextView actionbartitle=(TextView)findViewById(R.id.ramos_actionbar_title);
+        actionbartitle.setText(R.string.actionbar_general_setting);
+        
+    	TextView returntextview=(TextView)findViewById(R.id.preference_return_textview);
+    	returntextview.setText(R.string.set);
+    	returntextview.setVisibility(View.VISIBLE);
+    	LinearLayout linear=(LinearLayout)findViewById(R.id.preference_actionbar_return);
+    	linear.setVisibility(View.VISIBLE);
+		linear.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    finish();
+                }
+            });
+		//[ramos]end liting
         /// M: add for plugin
         setMessagePreferences();
     }
@@ -279,14 +302,22 @@ public class GeneralPreferenceActivity extends PreferenceActivity
     }
 
     private void setMessagePreferences() {
+		//[ramos] modified by liting 20150929
+/*		
         addPreferencesFromResource(R.xml.generalpreferences);
         mShowEmailPref = (CheckBoxPreference) findPreference(SHOW_EMAIL_ADDRESS);
         PreferenceCategory displayOptions = (PreferenceCategory) findPreference(DISPLAY_PREFERENCE);
         displayOptions.removePreference(mShowEmailPref);
+*/        
+        addPreferencesFromResource(R.xml.ramos_generalpreferences);
+        mShowEmailPref = (SwitchPreference) findPreference(SHOW_EMAIL_ADDRESS);
+		//[ramos] end liting
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
         MmsLog.d(TAG, "email address check = " + sp.getBoolean(mShowEmailPref.getKey(), true));
         if (mShowEmailPref != null) {
-            mShowEmailPref.setChecked(sp.getBoolean(mShowEmailPref.getKey(), true));
+            //[ramos] begin liting 20160223 true->false
+            mShowEmailPref.setChecked(sp.getBoolean(mShowEmailPref.getKey(), false));
+            //[ramos] end liting
         }
 
         PreferenceCategory storageCategory = (PreferenceCategory) findPreference(STORAGE_SETTING);
@@ -326,6 +357,10 @@ public class GeneralPreferenceActivity extends PreferenceActivity
             setMultiCardPreference();
         }
         mChatWallpaperUri = sp.getString(GENERAL_CHAT_WALLPAPER, "");
+		//[ramos]modified by liting 20150923
+        removeFontSizeSetting();
+        getPreferenceScreen().removePreference(findPreference("pref_key_cell_broadcast"));
+		//[ramos]end liting
     }
 
     public void removeWallPaperSetting() {
@@ -346,7 +381,9 @@ public class GeneralPreferenceActivity extends PreferenceActivity
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         menu.clear();
-        menu.add(0, MENU_RESTORE_DEFAULTS, 0, R.string.restore_default);
+		//[ramos]added by liting 20150923
+        //menu.add(0, MENU_RESTORE_DEFAULTS, 0, R.string.restore_default);
+		//[ramos]end liting
         return true;
     }
 
@@ -428,7 +465,9 @@ public class GeneralPreferenceActivity extends PreferenceActivity
         editor.putBoolean(WAPPUSH_AUTO_DOWNLOAD, false);
         /// M: fix bug ALPS00432361, restore default preferences
         /// about GroupMms and ShowEmailAddress @{
-        editor.putBoolean(SHOW_EMAIL_ADDRESS, true);
+        //[ramos] begin liting 20160223 true->false
+        editor.putBoolean(SHOW_EMAIL_ADDRESS, false);
+        //[ramos] end liting
         /// @}
         editor.apply();
         setPreferenceScreen(null);
@@ -1121,4 +1160,10 @@ public class GeneralPreferenceActivity extends PreferenceActivity
             mCBsettingPref.setEnabled(true);
         }
     }
+	//[ramos]added by liting 20150923
+    public void removeFontSizeSetting() {
+        PreferenceCategory displayOptions = (PreferenceCategory) findPreference(DISPLAY_PREFERENCE);
+        displayOptions.removePreference(findPreference(FONT_SIZE_SETTING));
+    }
+	//[ramos]end liting
 }
